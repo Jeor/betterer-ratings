@@ -1,0 +1,69 @@
+[api_keys]
+tmdb = "replace-me-tmdb-key"
+mdblist = "replace-me-mdblist-key"
+pmdb = "replace-me-pmdb-key"
+
+[worker]
+log_level = "INFO"
+source_scan_interval_hours = 1
+title_refresh_days = 7
+episode_refresh_days = 1
+failed_retry_days = 7
+
+[tmdb]
+language = "en-US"
+rate_limit = { requests = 45, per_seconds = 1.0 }
+
+[[tmdb.sources]]
+name = "movie/popular"
+max_pages = 500
+
+[[tmdb.sources]]
+name = "movie/top_rated"
+max_pages = 500
+
+[[tmdb.sources]]
+name = "tv/popular"
+max_pages = 500
+
+[[tmdb.sources]]
+name = "tv/top_rated"
+max_pages = 500
+
+[[tmdb.sources]]
+name = "trending/movie/day"
+max_pages = 500
+
+[[tmdb.sources]]
+name = "trending/movie/week"
+max_pages = 500
+
+[[tmdb.sources]]
+name = "trending/tv/day"
+max_pages = 500
+
+[[tmdb.sources]]
+name = "trending/tv/week"
+max_pages = 500
+
+[[tmdb.sources]]
+name = "trending/all/day"
+max_pages = 500
+
+[[tmdb.sources]]
+name = "trending/all/week"
+max_pages = 500
+
+[imdb]
+min_votes = 250
+types = ["movie", "tvSeries", "tvMiniSeries", "tvMovie"]
+exclude_unknown_year = true
+
+[mdblist]
+rate_limit = { requests = 2, per_seconds = 1.0 }
+batch_size = 100
+
+[pmdb]
+api_rate_limit = { requests = 15, per_seconds = 1.0 }
+ratings_limit = { requests = 15, per_seconds = 1.0 }
+mappings_limit = { requests = 15, per_seconds = 1.0 }

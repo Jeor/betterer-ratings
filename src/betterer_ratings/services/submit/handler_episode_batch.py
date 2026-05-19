@@ -1,0 +1,288 @@
+from __future__ import annotations
+
+from typing import Any, Callable, Dict, Optional, Sequence
+
+
+async def submit_episode_ratings_batch(
+    *,
+    rows: Sequence[Any],
+    pmdb_client: Any,
+    db: Any,
+    max_retry_attempts: int,
+    format_manual_error_fn: Callable[..., str],
+    retry_delay_seconds_fn: Callable[[Any, int], int],
+    now_epoch_fn: Callable[[], int],
+    first_non_empty_fn: Callable[..., Optional[str]],
+    parse_int_fn: Callable[[Any], Optional[int]],
+    parse_retry_after_fn: Callable[[Optional[str], int], int],
+    pmdb_submit_result_cls: Any,
+    extract_error_code_fn: Callable[[Any, str], str],
+    logger: Any,
+) -> None:
+    if not rows:
+        return
+
+    first = rows[0]
+    tmdb_id = int(first["tmdb_id"])
+    media_type = str(first["media_type"])
+    season = int(first["season"])
+    label = str(first["label"])
+    endpoint = "/api/external/episode-ratings/batch"
+    rows_to_create: list[Any] = []
+
+    for row in rows:
+        episode = int(row["episode"])
+        item_id = first_non_empty_fn(row["pmdb_item_id"])
+        if not item_id:
+            rows_to_create.append(row)
+            continue
+        delete_result = await pmdb_client.delete_episode_rating_by_id(item_id)
+        if delete_result.success:
+            rows_to_create.append(row)
+            continue
+
+        message = delete_result.error_text or "Failed to delete existing episode rating"
+        if delete_result.retryable:
+            attempts = int(row["pmdb_attempts"] or 0)
+            pseudo_result = pmdb_submit_result_cls(
+                success=False,
+                retryable=True,
+                retry_after_seconds=max(5, int(delete_result.retry_after_seconds or 30)),
+                duplicate_or_exists=False,
+                error_text=message,
+                item_id=None,
+                status_code=int(delete_result.status_code or 0),
+                error_code=delete_result.error_code or "delete_failed",
+                endpoint=delete_result.endpoint or endpoint,
+            )
+            if attempts + 1 >= max_retry_attempts:
+                db.mark_episode_rating_failed(
+                    tmdb_id,
+                    media_type,
+                    season,
+                    episode,
+                    label,
+                    format_manual_error_fn(
+                        endpoint=delete_result.endpoint or endpoint,
+                        status=int(delete_result.status_code or 0),
+                        code="max_retry_attempts_exceeded",
+                        retryable=False,
+                        message=(
+                            f"Exceeded max retry attempts ({max_retry_attempts}) "
+                            "for episode rating delete+create."
+                        ),
+                    ),
+                )
+            else:
+                retry_delay = retry_delay_seconds_fn(pseudo_result, attempts)
+                retry_at = now_epoch_fn() + retry_delay
+                db.mark_episode_rating_retry(
+                    tmdb_id,
+                    media_type,
+                    season,
+                    episode,
+                    label,
+                    retry_at,
+                    format_manual_error_fn(
+                        endpoint=delete_result.endpoint or endpoint,
+                        status=int(delete_result.status_code or 0),
+                        code=delete_result.error_code or "delete_failed",
+                        retryable=True,
+                        message=message,
+                    ),
+                )
+            continue
+
+        db.mark_episode_rating_failed(
+            tmdb_id,
+            media_type,
+            season,
+            episode,
+            label,
+            format_manual_error_fn(
+                endpoint=delete_result.endpoint or endpoint,
+                status=int(delete_result.status_code or 0),
+                code=delete_result.error_code or "delete_failed",
+                retryable=False,
+                message=message,
+            ),
+        )
+
+    if not rows_to_create:
+        return
+
+    payload_ratings: list[Dict[str, Any]] = []
+    for row in rows_to_create:
+        payload_ratings.append(
+            {
+                "episode": int(row["episode"]),
+                "score": float(row["score"]),
+                "label": str(row["label"]),
+            }
+        )
+
+    response = await pmdb_client.submit_episode_ratings_batch(
+        tmdb_id=tmdb_id,
+        media_type=media_type,
+        season=season,
+        label=label,
+        ratings=payload_ratings,
+    )
+
+    payload = response.data if isinstance(response.data, dict) else {}
+    created_items: Dict[int, Optional[str]] = {}
+    items = payload.get("items")
+    if isinstance(items, list):
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            item_episode = parse_int_fn(item.get("episode"))
+            if item_episode is None:
+                continue
+            created_items[int(item_episode)] = first_non_empty_fn(item.get("id"))
+
+    unresolved_rows: list[Any] = []
+    submitted_at = now_epoch_fn()
+    for row in rows_to_create:
+        episode = int(row["episode"])
+        created_item_id = created_items.get(episode)
+        if episode in created_items:
+            db.mark_episode_rating_submitted(
+                tmdb_id,
+                media_type,
+                season,
+                episode,
+                str(row["label"]),
+                submitted_at,
+                pmdb_item_id=created_item_id,
+            )
+        else:
+            unresolved_rows.append(row)
+
+    for row in list(unresolved_rows):
+        episode = int(row["episode"])
+        score = float(row["score"])
+        found_existing, found_item_id = await pmdb_client.confirm_episode_rating_exists(
+            tmdb_id=tmdb_id,
+            media_type=media_type,
+            season=season,
+            episode=episode,
+            label=str(row["label"]),
+            score=score,
+        )
+        if not found_existing:
+            continue
+        db.mark_episode_rating_submitted(
+            tmdb_id,
+            media_type,
+            season,
+            episode,
+            str(row["label"]),
+            submitted_at,
+            pmdb_item_id=found_item_id,
+        )
+        unresolved_rows.remove(row)
+
+    if not unresolved_rows:
+        logger.info(
+            "[Submitter] Episode batch submitted: %s %s season=%s items=%s",
+            media_type,
+            tmdb_id,
+            season,
+            len(rows_to_create),
+            extra={
+                "event": "episode_ratings.submitted",
+                "entity": "episode_ratings",
+                "media_type": media_type,
+                "tmdb_id": tmdb_id,
+                "season": season,
+                "items": len(rows_to_create),
+            },
+        )
+        return
+
+    status_code = int(response.status or 0)
+    retryable = status_code in {0, 401, 429, 500, 502, 503, 504, 207}
+    error_code = extract_error_code_fn(response.data, response.text or "")
+    base_retry_after = (
+        parse_retry_after_fn(response.headers.get("retry-after"), 30) if status_code == 429 else 30
+    )
+
+    for row in unresolved_rows:
+        episode = int(row["episode"])
+        attempts = int(row["pmdb_attempts"] or 0)
+        score = float(row["score"])
+        label_value = str(row["label"])
+        message = response.text or f"Episode batch submit unresolved for episode {episode}"
+        if retryable:
+            pseudo_result = pmdb_submit_result_cls(
+                success=False,
+                retryable=True,
+                retry_after_seconds=base_retry_after,
+                duplicate_or_exists=False,
+                error_text=message,
+                item_id=None,
+                status_code=status_code,
+                error_code=error_code,
+                endpoint=endpoint,
+            )
+            if attempts + 1 >= max_retry_attempts:
+                db.mark_episode_rating_failed(
+                    tmdb_id,
+                    media_type,
+                    season,
+                    episode,
+                    label_value,
+                    format_manual_error_fn(
+                        endpoint=endpoint,
+                        status=status_code,
+                        code="max_retry_attempts_exceeded",
+                        retryable=False,
+                        message=(
+                            f"Exceeded max retry attempts ({max_retry_attempts}) "
+                            "for episode batch submission."
+                        ),
+                    ),
+                )
+            else:
+                retry_delay = retry_delay_seconds_fn(pseudo_result, attempts)
+                retry_at = now_epoch_fn() + retry_delay
+                db.mark_episode_rating_retry(
+                    tmdb_id,
+                    media_type,
+                    season,
+                    episode,
+                    label_value,
+                    retry_at,
+                    format_manual_error_fn(
+                        endpoint=endpoint,
+                        status=status_code,
+                        code=error_code or "batch_unresolved",
+                        retryable=True,
+                        message=(f"{message[:220]} episode={episode} score={score:.1f}"),
+                    ),
+                )
+            continue
+
+        db.mark_episode_rating_failed(
+            tmdb_id,
+            media_type,
+            season,
+            episode,
+            label_value,
+            format_manual_error_fn(
+                endpoint=endpoint,
+                status=status_code,
+                code=error_code or "batch_failed",
+                retryable=False,
+                message=f"{message[:220]} episode={episode} score={score:.1f}",
+            ),
+        )
+    logger.warning(
+        "[Submitter] Episode batch unresolved: %s %s season=%s unresolved=%s status=%s",
+        media_type,
+        tmdb_id,
+        season,
+        len(unresolved_rows),
+        status_code,
+    )

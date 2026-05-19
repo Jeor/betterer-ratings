@@ -1,0 +1,11 @@
+services:
+  betterer-ratings:
+    build: .
+    container_name: betterer-ratings
+    restart: unless-stopped
+    command: ["betterer-ratings", "--config", "/config/config.toml"]
+    volumes:
+      - ./config.toml:/config/config.toml:ro
+      - ${BETTERER_DATA_DB:-./data/db}:/data/db
+      - ${BETTERER_DATA_IMDB:-./data/imdb}:/data/imdb
+      - ${BETTERER_DATA_TEMP:-./data/temp}:/data/temp

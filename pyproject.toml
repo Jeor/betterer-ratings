@@ -1,0 +1,57 @@
+[build-system]
+requires = ["hatchling>=1.26.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "betterer-ratings"
+version = "2.0.0"
+description = "Open-source TMDB -> MDBList -> PMDB sync worker"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { file = "LICENSE" }
+authors = [{ name = "itsrenoria" }]
+dependencies = [
+  "httpx>=0.27.0,<1",
+]
+
+[project.scripts]
+betterer-ratings = "betterer_ratings.cli:main"
+
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.19.1,<2",
+  "pytest>=8.4.2,<9",
+  "pytest-cov>=6.0.0,<7",
+  "respx>=0.22.0,<1",
+  "ruff>=0.11.0,<1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/betterer_ratings"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/conftest.py" = ["E402"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+files = ["src/betterer_ratings"]
+
+[[tool.mypy.overrides]]
+module = ["httpx.*"]
+ignore_missing_imports = true
