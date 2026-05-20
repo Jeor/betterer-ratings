@@ -5,6 +5,7 @@ import logging
 import signal
 from typing import Optional
 
+from betterer_ratings.api_server import start_api_server
 from betterer_ratings.config.schema import AppConfig
 from betterer_ratings.core.clock import now_epoch, to_log_time
 from betterer_ratings.wiring.container import AppContainer, build_container
@@ -14,6 +15,7 @@ LOGGER = logging.getLogger("betterer-ratings")
 
 async def run_app(config: AppConfig) -> None:
     container: Optional[AppContainer] = None
+    api_runner = None
 
     try:
         container = build_container(config=config)
@@ -30,6 +32,12 @@ async def run_app(config: AppConfig) -> None:
                 loop.add_signal_handler(sig, _signal_stop)
             except NotImplementedError:
                 pass
+
+        # Start dashboard API server
+        try:
+            api_runner = await start_api_server(container.db)
+        except Exception:
+            LOGGER.warning("Dashboard API server failed to start; continuing without it.", exc_info=True)
 
         LOGGER.info(
             "Starting betterer-ratings worker database=%s source_scan_interval_hours=%s "
@@ -102,9 +110,12 @@ async def run_app(config: AppConfig) -> None:
         LOGGER.info("Shutdown complete.")
 
     finally:
+        if api_runner is not None:
+            await api_runner.cleanup()
         if container is not None:
             container.harvester.close()
             await container.tmdb_client.aclose()
             await container.mdblist_client.aclose()
             await container.pmdb_client.aclose()
             container.db.close()
+

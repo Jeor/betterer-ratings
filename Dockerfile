@@ -12,4 +12,6 @@ RUN pip install --no-cache-dir .
 
 RUN mkdir -p /config /data/db /data/imdb /data/temp
 
+EXPOSE 8087
+
 CMD ["betterer-ratings", "--config", "/config/config.toml"]
