@@ -79,6 +79,10 @@ def scale_to_100(
     if denominator is not None and denominator > 0:
         return clamp_0_100((numeric / denominator) * 100.0)
 
+    if default_scale_hint == 4:
+        if numeric <= 4:
+            return clamp_0_100(numeric * 25.0)
+        return clamp_0_100(numeric)
     if default_scale_hint == 5:
         if numeric <= 5:
             return clamp_0_100(numeric * 20.0)
@@ -95,6 +99,28 @@ def scale_to_100(
     if numeric <= 10:
         return clamp_0_100(numeric * 10.0)
 
+    return clamp_0_100(numeric)
+
+
+def normalized_mdblist_source_score(entry: Dict[str, Any]) -> Optional[float]:
+    """MDBList rating entries expose score as already normalized to 0-100."""
+
+    score_num, score_den = parse_value_and_scale(entry.get("score"))
+    if score_num is None:
+        return None
+    if score_den is not None:
+        return scale_to_100(score_num, score_den)
+    return clamp_0_100(score_num)
+
+
+def percent_value_to_100(
+    numeric: Optional[float],
+    denominator: Optional[float] = None,
+) -> Optional[float]:
+    if numeric is None:
+        return None
+    if denominator is not None:
+        return scale_to_100(numeric, denominator)
     return clamp_0_100(numeric)
 
 
@@ -148,36 +174,31 @@ def parse_mdblist_ratings(mdblist_data: Optional[Dict[str, Any]]) -> Dict[str, f
         if not source:
             continue
 
-        score_num, score_den = parse_value_and_scale(entry.get("score"))
+        source_score = normalized_mdblist_source_score(entry)
         value_num, value_den = parse_value_and_scale(entry.get("value"))
-        numeric: Optional[float]
-        denominator: Optional[float]
-        if score_num is not None:
-            numeric = score_num
-            denominator = score_den
-        else:
-            numeric = value_num
-            denominator = value_den
-
-        if numeric is None:
-            continue
 
         if source in {"imdb", "internet movie database"}:
             if "IM" not in ratings:
-                im_score = scale_to_100(numeric, denominator, default_scale_hint=10)
+                im_score = source_score
+                if im_score is None:
+                    im_score = scale_to_100(value_num, value_den, default_scale_hint=10)
                 if im_score is not None:
                     ratings["IM"] = im_score
             continue
 
         if source in {"rotten tomatoes", "tomatoes", "tomatometer"}:
             if "audience" not in source:
-                rt_score = scale_to_100(numeric, denominator)
+                rt_score = source_score
+                if rt_score is None:
+                    rt_score = percent_value_to_100(value_num, value_den)
                 if rt_score is not None:
                     ratings["RT"] = rt_score
             continue
 
         if "audience" in source or "popcorn" in source:
-            pc_score = scale_to_100(numeric, denominator)
+            pc_score = source_score
+            if pc_score is None:
+                pc_score = percent_value_to_100(value_num, value_den)
             if pc_score is not None:
                 ratings["PC"] = pc_score
             continue
@@ -185,43 +206,56 @@ def parse_mdblist_ratings(mdblist_data: Optional[Dict[str, Any]]) -> Dict[str, f
         if source.startswith("metacritic"):
             if "user" in source:
                 continue
-            if denominator == 10 or (denominator is None and numeric <= 10):
+            if source_score is not None:
+                ratings["MC"] = source_score
+                continue
+            if value_num is None:
+                continue
+            if value_den == 10 or (value_den is None and value_num <= 10):
                 continue
             if "MC" not in ratings:
-                mc_score = scale_to_100(numeric, denominator)
+                mc_score = percent_value_to_100(value_num, value_den)
                 if mc_score is not None:
                     ratings["MC"] = mc_score
             continue
 
         if "letterboxd" in source:
-            lb_hint = 5 if denominator == 5 or (denominator is None and numeric <= 5) else 10
-            lb_score = scale_to_100(numeric, denominator, default_scale_hint=lb_hint)
+            lb_score = source_score
+            if lb_score is None:
+                lb_score = scale_to_100(value_num, value_den, default_scale_hint=10)
             if lb_score is not None:
                 ratings["LB"] = lb_score
             continue
 
         if "trakt" in source:
-            tr_score = scale_to_100(numeric, denominator, default_scale_hint=10)
+            tr_score = source_score
+            if tr_score is None:
+                tr_score = percent_value_to_100(value_num, value_den)
             if tr_score is not None:
                 ratings["TR"] = tr_score
             continue
 
         if source in {"tmdb", "the movie database"} or "themoviedb" in source:
             if "TM" not in ratings:
-                tm_score = scale_to_100(numeric, denominator, default_scale_hint=10)
+                tm_score = source_score
+                if tm_score is None:
+                    tm_score = percent_value_to_100(value_num, value_den)
                 if tm_score is not None:
                     ratings["TM"] = tm_score
             continue
 
         if source in {"mal", "myanimelist", "my anime list"}:
-            ml_score = scale_to_100(numeric, denominator, default_scale_hint=10)
+            ml_score = source_score
+            if ml_score is None:
+                ml_score = scale_to_100(value_num, value_den, default_scale_hint=10)
             if ml_score is not None:
                 ratings["ML"] = ml_score
             continue
 
         if source in {"roger ebert", "rogerebert", "roger-ebert"}:
-            re_hint = 5 if denominator == 5 or (denominator is None and numeric <= 5) else 10
-            re_score = scale_to_100(numeric, denominator, default_scale_hint=re_hint)
+            re_score = source_score
+            if re_score is None:
+                re_score = scale_to_100(value_num, value_den, default_scale_hint=4)
             if re_score is not None:
                 ratings["RE"] = re_score
             continue
@@ -229,7 +263,10 @@ def parse_mdblist_ratings(mdblist_data: Optional[Dict[str, Any]]) -> Dict[str, f
     if "TR" not in ratings:
         trakt_fallback = mdblist_data.get("score")
         tr_num, tr_den = parse_value_and_scale(trakt_fallback)
-        tr_score = scale_to_100(tr_num, tr_den)
+        if tr_den is not None:
+            tr_score = scale_to_100(tr_num, tr_den)
+        else:
+            tr_score = clamp_0_100(tr_num)
         if tr_score is not None:
             ratings["TR"] = tr_score
 

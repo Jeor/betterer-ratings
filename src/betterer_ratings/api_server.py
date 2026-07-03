@@ -61,8 +61,11 @@ async def handle_services(request: web.Request) -> web.Response:
         if row:
             svc = dict(row)
             paused_until = int(svc.get("paused_until") or 0)
-            svc["is_paused"] = paused_until > ts
+            is_paused = paused_until > ts
+            svc["is_paused"] = is_paused
             svc["pause_remaining_seconds"] = max(0, paused_until - ts)
+            if not is_paused:
+                svc["pause_reason"] = None
             services.append(svc)
         else:
             services.append({
@@ -282,20 +285,10 @@ def create_app(db: Any) -> web.Application:
     if FRONTEND_DIR.is_dir():
         app.router.add_static("/static/", FRONTEND_DIR, show_index=False)
 
-        async def serve_index(request: web.Request) -> web.StreamResponse:
+        async def serve_dashboard(request: web.Request) -> web.StreamResponse:
             return web.FileResponse(FRONTEND_DIR / "index.html")
 
-        async def serve_v2(request: web.Request) -> web.StreamResponse:
-            return web.FileResponse(FRONTEND_DIR / "v2.html")
-
-        async def serve_v3(request: web.Request) -> web.StreamResponse:
-            return web.FileResponse(FRONTEND_DIR / "v3.html")
-
-        app.router.add_get("/", serve_index)
-        app.router.add_get("/v2", serve_v2)
-        app.router.add_get("/v3", serve_v3)
-        app.router.add_get("/v2.html", serve_v2)
-        app.router.add_get("/v3.html", serve_v3)
+        app.router.add_get("/", serve_dashboard)
 
     return app
 

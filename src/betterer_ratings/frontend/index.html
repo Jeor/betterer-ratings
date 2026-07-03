@@ -3,1468 +3,829 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>betterer-ratings — Aurora Dashboard</title>
+<title>betterer-ratings</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* ═══════════════════════════════════════════════════════════════
-   RESET & ROOT
-   ═══════════════════════════════════════════════════════════════ */
-*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
-:root {
-  --bg-deep: #0a0e1a;
-  --bg-surface: #0d1117;
-  --glass-bg: rgba(255,255,255,0.035);
-  --glass-bg-hover: rgba(255,255,255,0.06);
-  --glass-border: rgba(255,255,255,0.08);
-  --glass-border-hover: rgba(255,255,255,0.14);
-  --accent-start: #00d4aa;
-  --accent-end: #0ea5e9;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --error: #ef4444;
-  --text-primary: #e2e8f0;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --font-heading: 'Outfit', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
-  --radius: 16px;
-  --radius-sm: 10px;
-  --radius-xs: 6px;
-}
-
-html { font-size: 15px; }
-
-body {
-  font-family: var(--font-body);
-  background: var(--bg-deep);
-  color: var(--text-primary);
-  min-height: 100vh;
-  overflow-x: hidden;
-  line-height: 1.5;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   AURORA BACKGROUND
-   ═══════════════════════════════════════════════════════════════ */
-.aurora-bg {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.aurora-bg::before,
-.aurora-bg::after {
-  content: '';
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(120px);
-  opacity: 0.25;
-  animation: aurora-drift 14s ease-in-out infinite alternate;
-}
-
-.aurora-bg::before {
-  width: 900px; height: 600px;
-  top: -15%; left: -10%;
-  background: radial-gradient(ellipse at center, #00d4aa33 0%, #0ea5e922 40%, transparent 70%);
-  animation-duration: 12s;
-}
-
-.aurora-bg::after {
-  width: 800px; height: 500px;
-  bottom: -10%; right: -8%;
-  background: radial-gradient(ellipse at center, #0ea5e933 0%, #6366f122 40%, transparent 70%);
-  animation-duration: 16s;
-  animation-delay: -5s;
-}
-
-.aurora-layer {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(100px);
-  opacity: 0.15;
-}
-
-.aurora-layer--1 {
-  width: 600px; height: 400px;
-  top: 30%; left: 25%;
-  background: radial-gradient(ellipse, #10b98128 0%, transparent 70%);
-  animation: aurora-drift2 18s ease-in-out infinite alternate;
-}
-
-.aurora-layer--2 {
-  width: 500px; height: 350px;
-  top: 55%; right: 15%;
-  background: radial-gradient(ellipse, #0ea5e920 0%, transparent 70%);
-  animation: aurora-drift 20s ease-in-out infinite alternate-reverse;
-}
-
-@keyframes aurora-drift {
-  0%   { transform: translate(0, 0) scale(1); }
-  50%  { transform: translate(40px, -30px) scale(1.08); }
-  100% { transform: translate(-20px, 20px) scale(0.95); }
-}
-
-@keyframes aurora-drift2 {
-  0%   { transform: translate(0, 0) rotate(0deg) scale(1); }
-  100% { transform: translate(-50px, 30px) rotate(15deg) scale(1.12); }
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   LAYOUT & GLASS
-   ═══════════════════════════════════════════════════════════════ */
-.app-wrapper {
-  position: relative;
-  z-index: 1;
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 0 24px 60px;
-}
-
-.glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius);
-  transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
-}
-
-.glass:hover {
-  background: var(--glass-bg-hover);
-  border-color: var(--glass-border-hover);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   TOP BAR
-   ═══════════════════════════════════════════════════════════════ */
-.top-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 0;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.top-bar__brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.top-bar__title {
-  font-family: var(--font-heading);
-  font-weight: 800;
-  font-size: 1.4rem;
-  background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: -0.02em;
-}
-
-.top-bar__version {
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 20px;
-  background: rgba(0,212,170,0.12);
-  color: var(--accent-start);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.top-bar__nav {
-  display: flex;
-  gap: 4px;
-  background: rgba(255,255,255,0.04);
-  border-radius: 10px;
-  padding: 3px;
-}
-
-.top-bar__nav a {
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  text-decoration: none;
-  padding: 6px 16px;
-  border-radius: 8px;
-  transition: all 0.25s;
-}
-
-.top-bar__nav a:hover {
-  color: var(--text-primary);
-  background: rgba(255,255,255,0.06);
-}
-
-.top-bar__nav a.active {
-  color: #fff;
-  background: linear-gradient(135deg, rgba(0,212,170,0.2), rgba(14,165,233,0.2));
-  box-shadow: 0 0 12px rgba(0,212,170,0.15);
-}
-
-.top-bar__meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
-
-.top-bar__refresh-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--success);
-  animation: pulse-dot 2s ease-in-out infinite;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   HERO STATS ROW
-   ═══════════════════════════════════════════════════════════════ */
-.hero-stats {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 14px;
-  margin-bottom: 20px;
-}
-
-.hero-card {
-  padding: 20px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  opacity: 0;
-  transform: translateY(18px);
-  animation: fade-up 0.5s ease forwards;
-}
-
-.hero-card:nth-child(1) { animation-delay: 0.05s; }
-.hero-card:nth-child(2) { animation-delay: 0.1s; }
-.hero-card:nth-child(3) { animation-delay: 0.15s; }
-.hero-card:nth-child(4) { animation-delay: 0.2s; }
-.hero-card:nth-child(5) { animation-delay: 0.25s; }
-.hero-card:nth-child(6) { animation-delay: 0.3s; }
-
-.hero-card__icon {
-  font-size: 1.3rem;
-  margin-bottom: 2px;
-}
-
-.hero-card__value {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 1.85rem;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-  background: linear-gradient(135deg, var(--text-primary) 40%, var(--text-secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.hero-card__label {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   TWO-COL GRID
-   ═══════════════════════════════════════════════════════════════ */
-.two-col {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.panel {
-  padding: 24px;
-  opacity: 0;
-  transform: translateY(18px);
-  animation: fade-up 0.5s ease forwards;
-  animation-delay: 0.35s;
-}
-
-.panel__title {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 1rem;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-primary);
-  letter-spacing: -0.01em;
-}
-
-.panel__title-accent {
-  width: 3px;
-  height: 18px;
-  border-radius: 3px;
-  background: linear-gradient(to bottom, var(--accent-start), var(--accent-end));
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   QUEUE STATUS — PROGRESS RINGS
-   ═══════════════════════════════════════════════════════════════ */
-.queue-rings {
-  display: flex;
-  justify-content: space-around;
-  align-items: flex-start;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-
-.ring-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  min-width: 130px;
-}
-
-.ring-svg {
-  width: 110px;
-  height: 110px;
-  transform: rotate(-90deg);
-}
-
-.ring-bg {
-  fill: none;
-  stroke: rgba(255,255,255,0.06);
-  stroke-width: 8;
-}
-
-.ring-fg {
-  fill: none;
-  stroke-width: 8;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.ring-fg--ratings { stroke: url(#grad-teal); }
-.ring-fg--mappings { stroke: url(#grad-blue); }
-.ring-fg--episodes { stroke: url(#grad-violet); }
-
-.ring-center {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 1.1rem;
-  fill: var(--text-primary);
-  transform: rotate(90deg);
-  transform-origin: center;
-}
-
-.ring-label {
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.ring-stats {
-  display: flex;
-  gap: 10px;
-  font-size: 0.72rem;
-  color: var(--text-muted);
-}
-
-.ring-stat {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.ring-stat__dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-}
-
-.ring-stat__dot--pending { background: var(--warning); }
-.ring-stat__dot--inflight { background: var(--accent-start); }
-.ring-stat__dot--failed { background: var(--error); }
-
-/* ═══════════════════════════════════════════════════════════════
-   PROVIDER STATUS
-   ═══════════════════════════════════════════════════════════════ */
-.provider-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.provider-row {
-  display: grid;
-  grid-template-columns: 14px 1fr 140px 70px;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  border-radius: var(--radius-sm);
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.04);
-  transition: background 0.25s;
-}
-
-.provider-row:hover {
-  background: rgba(255,255,255,0.04);
-}
-
-.status-dot {
-  width: 9px; height: 9px;
-  border-radius: 50%;
-  position: relative;
-}
-
-.status-dot--active {
-  background: var(--success);
-  box-shadow: 0 0 8px rgba(16,185,129,0.5);
-  animation: pulse-dot 2s ease-in-out infinite;
-}
-
-.status-dot--paused {
-  background: var(--warning);
-  box-shadow: 0 0 8px rgba(245,158,11,0.4);
-  animation: pulse-dot 3s ease-in-out infinite;
-}
-
-.status-dot--error {
-  background: var(--error);
-  box-shadow: 0 0 8px rgba(239,68,68,0.4);
-}
-
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.85); }
-}
-
-.provider-name {
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 0.82rem;
-  color: var(--text-primary);
-}
-
-.provider-name small {
-  display: block;
-  font-family: var(--font-body);
-  font-weight: 400;
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  margin-top: 1px;
-}
-
-.rate-bar-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.rate-bar {
-  height: 5px;
-  border-radius: 5px;
-  background: rgba(255,255,255,0.06);
-  overflow: hidden;
-}
-
-.rate-bar__fill {
-  height: 100%;
-  border-radius: 5px;
-  background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
-  transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
-}
-
-.rate-bar__text {
-  font-size: 0.65rem;
-  color: var(--text-muted);
-}
-
-.provider-status-code {
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 0.78rem;
-  text-align: right;
-}
-
-.provider-status-code--ok { color: var(--success); }
-.provider-status-code--warn { color: var(--warning); }
-.provider-status-code--err { color: var(--error); }
-.provider-status-code--na { color: var(--text-muted); }
-
-/* ═══════════════════════════════════════════════════════════════
-   DATABASE BREAKDOWN
-   ═══════════════════════════════════════════════════════════════ */
-.db-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.bar-vis {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.bar-vis__row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.bar-vis__label {
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  min-width: 70px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.bar-vis__track {
-  flex: 1;
-  height: 22px;
-  border-radius: 6px;
-  background: rgba(255,255,255,0.04);
-  overflow: hidden;
-  position: relative;
-}
-
-.bar-vis__fill {
-  height: 100%;
-  border-radius: 6px;
-  background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
-  transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
-  min-width: 2px;
-}
-
-.bar-vis__count {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 0.82rem;
-  min-width: 55px;
-  text-align: right;
-  color: var(--text-primary);
-}
-
-.pills-wrap {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.rating-pill {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border-radius: 20px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
-  font-size: 0.78rem;
-  transition: transform 0.2s, background 0.2s;
-}
-
-.rating-pill:hover {
-  transform: translateY(-2px);
-  background: rgba(255,255,255,0.07);
-}
-
-.rating-pill__dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-}
-
-.rating-pill__name {
-  font-family: var(--font-heading);
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.rating-pill__count {
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-/* Rating source colors */
-.rc-IM { background: #f5c518; }
-.rc-RT { background: #fa320a; }
-.rc-MC { background: #66cc33; }
-.rc-TM { background: #01b4e4; }
-.rc-PC { background: #ff6b6b; }
-.rc-LB { background: #00c030; }
-.rc-TR { background: #ed1c24; }
-.rc-ML { background: #2e51a2; }
-.rc-RE { background: #d4a847; }
-
-/* ═══════════════════════════════════════════════════════════════
-   SUBMISSION HISTORY CHART
-   ═══════════════════════════════════════════════════════════════ */
-.chart-wrap {
-  margin-bottom: 20px;
-  padding: 24px;
-  opacity: 0;
-  transform: translateY(18px);
-  animation: fade-up 0.5s ease forwards;
-  animation-delay: 0.45s;
-}
-
-.chart-container {
-  width: 100%;
-  overflow-x: auto;
-}
-
-.chart-svg {
-  display: block;
-  width: 100%;
-  min-width: 700px;
-}
-
-.chart-legend {
-  display: flex;
-  gap: 20px;
-  margin-top: 14px;
-  justify-content: center;
-}
-
-.chart-legend__item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-
-.chart-legend__swatch {
-  width: 10px; height: 10px;
-  border-radius: 3px;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   RECENT ACTIVITY TABLE
-   ═══════════════════════════════════════════════════════════════ */
-.activity-wrap {
-  margin-bottom: 20px;
-  padding: 24px;
-  opacity: 0;
-  transform: translateY(18px);
-  animation: fade-up 0.5s ease forwards;
-  animation-delay: 0.5s;
-  overflow-x: auto;
-}
-
-.activity-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 800px;
-}
-
-.activity-table th {
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  text-align: left;
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-
-.activity-table td {
-  font-size: 0.82rem;
-  padding: 10px 12px;
-  color: var(--text-secondary);
-  border-bottom: 1px solid rgba(255,255,255,0.03);
-}
-
-.activity-table tr:nth-child(even) td {
-  background: rgba(255,255,255,0.015);
-}
-
-.activity-table tr:hover td {
-  background: rgba(255,255,255,0.04);
-}
-
-.title-cell {
-  font-weight: 500;
-  color: var(--text-primary);
-  max-width: 260px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.type-badge {
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 0.65rem;
-  padding: 2px 8px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.type-badge--movie {
-  background: rgba(14,165,233,0.15);
-  color: #38bdf8;
-}
-
-.type-badge--tv {
-  background: rgba(168,85,247,0.15);
-  color: #c084fc;
-}
-
-.rating-dots {
-  display: flex;
-  gap: 4px;
-}
-
-.rating-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  opacity: 0.9;
-  title: attr(data-label);
-}
-
-.rating-dot--submitted { box-shadow: 0 0 4px rgba(16,185,129,0.5); }
-.rating-dot--pending { opacity: 0.4; }
-.rating-dot--failed { box-shadow: 0 0 4px rgba(239,68,68,0.5); outline: 1px solid var(--error); }
-
-/* ═══════════════════════════════════════════════════════════════
-   FOOTER COMPARISON
-   ═══════════════════════════════════════════════════════════════ */
-.footer-comp {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.footer-card {
-  padding: 22px;
-  opacity: 0;
-  transform: translateY(18px);
-  animation: fade-up 0.5s ease forwards;
-  animation-delay: 0.55s;
-}
-
-.footer-card__heading {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 0.9rem;
-  margin-bottom: 14px;
-  color: var(--text-primary);
-}
-
-.footer-metrics {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 14px;
-}
-
-.footer-metric {
-  text-align: center;
-}
-
-.footer-metric__val {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 1.35rem;
-  letter-spacing: -0.02em;
-}
-
-.footer-metric__val--accent {
-  background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.footer-metric__label {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-top: 2px;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   ANIMATIONS
-   ═══════════════════════════════════════════════════════════════ */
-@keyframes fade-up {
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes shimmer {
-  0% { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
-}
-
-.loading-shimmer {
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%);
-  background-size: 400px 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   EMPTY STATE
-   ═══════════════════════════════════════════════════════════════ */
-.empty-state {
-  text-align: center;
-  padding: 30px 20px;
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  font-style: italic;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   MAPPINGS SUB SECTION
-   ═══════════════════════════════════════════════════════════════ */
-.mapping-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   RESPONSIVE
-   ═══════════════════════════════════════════════════════════════ */
-@media (max-width: 1100px) {
-  .hero-stats { grid-template-columns: repeat(3, 1fr); }
-}
-
-@media (max-width: 850px) {
-  .hero-stats { grid-template-columns: repeat(2, 1fr); }
-  .two-col, .db-grid, .footer-comp { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 550px) {
-  html { font-size: 14px; }
-  .hero-stats { grid-template-columns: 1fr; }
-  .top-bar { flex-direction: column; align-items: flex-start; }
-  .queue-rings { flex-direction: column; align-items: center; }
-  .provider-row { grid-template-columns: 14px 1fr 100px 50px; }
-}
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 6px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
-
-/* tooltip overrides */
-[data-tooltip] { position: relative; cursor: default; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0c0f;
+  --card:#111317;
+  --card-hover:#141820;
+  --border:#1b2028;
+  --border-subtle:#15191f;
+  --text:#fafafa;
+  --text-secondary:#8b949e;
+  --text-muted:#4b5563;
+  --emerald:#54d18a;
+  --emerald-dim:rgba(16,185,129,.12);
+  --blue:#6b8fd6;
+  --blue-dim:rgba(59,130,246,.12);
+  --violet:#8d7bd9;
+  --violet-dim:rgba(139,92,246,.12);
+  --amber:#d6a545;
+  --amber-dim:rgba(245,158,11,.12);
+  --red:#e45b65;
+  --red-dim:rgba(239,68,68,.12);
+  --font-body:'Plus Jakarta Sans',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+  --radius:8px;
+  --radius-sm:5px;
+  --radius-pill:100px;
+}
+html{font-size:14px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{
+  font-family:var(--font-body);
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  background-image:linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px);
+  background-size:28px 28px;
+}
+a{color:inherit;text-decoration:none}
+
+/* ─── TOP NAV ─── */
+.topnav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 24px;
+  border-bottom:1px solid var(--border);
+  background:rgba(9,9,11,.85);
+  backdrop-filter:blur(12px);
+  position:sticky;top:0;z-index:100;
+}
+.topnav-brand{display:flex;align-items:center;gap:10px}
+.brand-mark{
+  width:18px;height:18px;border:2px solid var(--emerald);border-radius:50%;
+  position:relative;box-shadow:0 0 0 4px rgba(16,185,129,.08);
+}
+.brand-mark::after{
+  content:'';position:absolute;left:7px;top:3px;width:2px;height:8px;
+  background:var(--emerald);border-radius:2px;transform-origin:bottom center;transform:rotate(-35deg);
+}
+.topnav-brand span{font-weight:700;font-size:1rem;letter-spacing:-.02em}
+.topnav-right{display:flex;align-items:center;gap:16px}
+.topnav-status{display:flex;align-items:center;gap:6px;font-size:.7rem;color:var(--text-secondary)}
+.topnav-status .dot{width:6px;height:6px;border-radius:50%;background:var(--emerald);animation:pulse-dot 2s infinite}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ─── TAB BAR ─── */
+.tab-bar{
+  display:flex;gap:0;padding:0 24px;
+  border-bottom:1px solid var(--border);
+  background:rgba(17,17,19,.6);
+}
+.tab-btn{
+  padding:12px 20px;font-size:.8rem;font-weight:600;
+  color:var(--text-secondary);cursor:pointer;
+  border:none;background:none;position:relative;
+  transition:color .15s;letter-spacing:.02em;
+  text-transform:uppercase;
+}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--emerald)}
+.tab-btn.active::after{
+  content:'';position:absolute;bottom:-1px;left:12px;right:12px;
+  height:2px;background:var(--emerald);border-radius:2px 2px 0 0;
+}
+
+/* ─── MAIN ─── */
+.main{padding:20px 24px 40px;max-width:1440px;margin:0 auto}
+
+/* ─── TAB PANELS ─── */
+.tab-panel{display:none;animation:tabIn .25s ease}
+.tab-panel.active{display:block}
+@keyframes tabIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ─── STAT CARDS ─── */
+.stats-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:1100px){.stats-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:640px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+
+.stat-card{
+  background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,.006)),var(--card);
+  border:1px solid var(--border);border-radius:var(--radius);
+  padding:13px 14px 12px;position:relative;overflow:hidden;
+  min-height:94px;transition:border-color .2s,background .2s;
+}
+.stat-card:hover{border-color:#2b333f;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.01)),var(--card-hover)}
+.stat-accent{position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--accent,var(--emerald));opacity:.9}
+.stat-card .stat-label{font-size:.59rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin-bottom:7px}
+.stat-card .stat-value{font-family:var(--font-mono);font-size:1.42rem;font-weight:700;line-height:1;color:var(--text);margin-bottom:7px}
+.stat-card .stat-sub{font-size:.7rem;color:var(--text-muted)}
+.stat-card .stat-total{font-family:var(--font-mono);font-size:.72rem;font-weight:600;color:var(--text-secondary);margin-top:5px}
+.stat-card .stat-total-label{font-size:.56rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-top:2px}
+.stat-titles{--accent:#7eb68f}.stat-ratings{--accent:#54d18a}.stat-mappings{--accent:#8d7bd9}.stat-episodes{--accent:#d6a545}.stat-pending{--accent:#d6a545}.stat-failed{--accent:#e45b65}
+
+/* ─── PANELS / CARDS ─── */
+.panel{
+  background:linear-gradient(180deg,rgba(255,255,255,.018),rgba(255,255,255,.004)),var(--card);
+  border:1px solid var(--border);border-radius:var(--radius);
+  margin-bottom:16px;overflow:hidden;
+}
+.panel-header{
+  padding:12px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.panel-title{font-size:.76rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em}
+.panel-badge{font-family:var(--font-mono);font-size:.7rem;color:var(--text-secondary)}
+.panel-body{padding:14px 16px}
+.trend-meta{display:flex;align-items:center;justify-content:flex-end;gap:14px;flex-wrap:wrap}
+.trend-legend{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.trend-legend span{display:inline-flex;align-items:center;gap:5px;font-size:.66rem;color:var(--text-secondary);font-family:var(--font-mono)}
+.trend-legend i{width:8px;height:8px;border-radius:2px;background:var(--legend-color)}
+@media(max-width:760px){
+  .panel-header{align-items:flex-start;gap:10px;flex-direction:column}
+  .trend-meta{justify-content:flex-start;gap:8px}
+}
+
+/* ─── KPI STRIPS ─── */
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi-tile{
+  background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.015));
+  border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;
+}
+.kpi-label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin-bottom:6px}
+.kpi-value{font-family:var(--font-mono);font-size:1.35rem;font-weight:700}
+.kpi-value.good{color:var(--emerald)}
+.kpi-value.warn{color:var(--amber)}
+.kpi-value.bad{color:var(--red)}
+@media(max-width:900px){.kpi-strip{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.kpi-strip{grid-template-columns:1fr}}
+
+/* ─── TWO COL ─── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.two-col{grid-template-columns:1fr}}
+
+/* ─── THREE COL ─── */
+.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:900px){.three-col{grid-template-columns:1fr}}
+
+/* ─── TABLES ─── */
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{
+  font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--text-secondary);text-align:left;padding:8px 10px;
+  border-bottom:1px solid var(--border);
+}
+.data-table th.r{text-align:right}
+.data-table td{
+  padding:8px 10px;border-bottom:1px solid var(--border-subtle);
+  font-size:.8rem;vertical-align:middle;
+}
+.data-table td.mono{font-family:var(--font-mono);text-align:right;font-weight:500}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:rgba(255,255,255,.02)}
+.data-table.compact td{padding:6px 10px}
+.data-table.compact th{padding:7px 10px}
+
+/* ─── STATUS PILLS ─── */
+.pill{
+  display:inline-flex;align-items:center;
+  padding:2px 8px;border-radius:var(--radius-pill);
+  font-size:.65rem;font-weight:600;font-family:var(--font-mono);
+  white-space:nowrap;
+}
+.pill-submitted{background:var(--emerald-dim);color:var(--emerald)}
+.pill-pending{background:var(--amber-dim);color:var(--amber)}
+.pill-failed{background:var(--red-dim);color:var(--red)}
+.pill-inflight,.pill-in_flight{background:var(--blue-dim);color:var(--blue)}
+.pill-movie{background:var(--blue-dim);color:var(--blue)}
+.pill-tv{background:var(--violet-dim);color:var(--violet)}
+.pill-active{background:var(--emerald-dim);color:var(--emerald)}
+.pill-paused{background:var(--red-dim);color:var(--red)}
+
+/* ─── PROGRESS BAR ─── */
+.stacked-bar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:rgba(255,255,255,.04);margin:12px 0 8px}
+.stacked-bar span{height:100%;transition:width .4s ease}
+.stacked-bar .seg-submitted{background:var(--emerald)}
+.stacked-bar .seg-pending{background:var(--amber)}
+.stacked-bar .seg-failed{background:var(--red)}
+.stacked-bar .seg-inflight{background:var(--blue)}
+
+/* ─── RATE LIMIT BAR ─── */
+.rate-bar-track{height:4px;border-radius:2px;background:rgba(255,255,255,.06);margin:6px 0}
+.rate-bar-fill{height:100%;border-radius:2px;background:var(--emerald);transition:width .4s}
+
+/* ─── HORIZONTAL BAR CHART ─── */
+.hbar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.hbar-label{font-size:.75rem;width:60px;color:var(--text-secondary);text-transform:uppercase;font-weight:600}
+.hbar-track{flex:1;height:20px;background:rgba(255,255,255,.04);border-radius:4px;overflow:hidden}
+.hbar-fill{height:100%;border-radius:4px;transition:width .5s ease;display:flex;align-items:center;padding-left:8px;font-family:var(--font-mono);font-size:.65rem;font-weight:600;color:#06100b;min-width:fit-content}
+.hbar-count{font-family:var(--font-mono);font-size:.75rem;width:50px;text-align:right;font-weight:500}
+
+/* ─── PROVIDER CARD ─── */
+.provider-card{padding:16px 18px}
+.provider-card .provider-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.provider-card .provider-name{font-weight:700;font-size:.85rem;display:flex;align-items:center;gap:8px}
+.provider-card .provider-name .dot{width:8px;height:8px;border-radius:50%}
+.provider-card .provider-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.provider-card .meta-item label{display:block;font-size:.6rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-secondary);font-weight:600;margin-bottom:2px}
+.provider-card .meta-item span{font-family:var(--font-mono);font-size:.8rem;font-weight:500}
+
+/* ─── RATING DOTS ─── */
+.rating-dots{display:flex;gap:3px;flex-wrap:wrap}
+.rating-dot{
+  width:20px;height:18px;border-radius:3px;display:flex;align-items:center;justify-content:center;
+  font-size:.5rem;font-weight:700;font-family:var(--font-mono);
+}
+.rating-dot.submitted{background:var(--emerald-dim);color:var(--emerald)}
+.rating-dot.pending{background:var(--amber-dim);color:var(--amber)}
+.rating-dot.failed{background:var(--red-dim);color:var(--red)}
+
+/* ─── SVG CHART ─── */
+.chart-container{width:100%;position:relative}
+.chart-container svg{display:block;width:100%}
+.trend-chart{padding:8px 0 0;min-height:280px}
+.trend-chart svg{height:280px;max-width:100%}
+.chart-tooltip{
+  position:absolute;z-index:5;pointer-events:none;min-width:160px;
+  padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:rgba(9,9,11,.96);box-shadow:0 12px 30px rgba(0,0,0,.35);
+  font-size:.74rem;color:var(--text-secondary);line-height:1.45;transform:translate(-50%,-112%);
+}
+.chart-tooltip strong{display:block;color:var(--text);font-size:.78rem;margin-bottom:4px}
+.chart-tooltip .row{display:flex;justify-content:space-between;gap:18px;font-family:var(--font-mono)}
+.trend-hit{cursor:crosshair}
+.trend-hit:hover{fill:rgba(255,255,255,.04)}
+.trend-segment{shape-rendering:geometricPrecision;transition:opacity .15s ease,filter .15s ease}
+.trend-segment:hover{opacity:1;filter:brightness(1.2)}
+.trend-guide{pointer-events:none;opacity:0;transition:opacity .12s ease}
+.trend-chart:hover .trend-guide{opacity:1}
+
+/* ─── QUEUE BIG NUMBER ─── */
+.q-big{font-family:var(--font-mono);font-size:2.2rem;font-weight:700;line-height:1}
+.q-row{display:flex;gap:16px;margin-top:10px;flex-wrap:wrap}
+.q-item{font-size:.7rem;color:var(--text-secondary)}
+.q-item span{font-family:var(--font-mono);font-weight:600}
+.queue-state{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.queue-state-label{font-size:.7rem;color:var(--text-secondary)}
+
+/* ─── INDICATOR DOT ─── */
+.idot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:6px;flex-shrink:0}
+
+/* ─── ERROR TEXT ─── */
+.err-text{color:var(--red);font-size:.7rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.error-chip{
+  display:inline-flex;max-width:180px;align-items:center;
+  padding:2px 7px;border-radius:var(--radius-sm);
+  background:rgba(239,68,68,.08);color:#f87171;
+  border:1px solid rgba(239,68,68,.18);
+  font-size:.68rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+/* ─── LOADING STATE ─── */
+.loading-shimmer{
+  background:linear-gradient(90deg,var(--card) 25%,#1a1a1d 50%,var(--card) 75%);
+  background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:4px;
+}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.loading-block{height:16px;margin:6px 0}
+
+/* ─── SCROLL ─── */
+.scroll-x{overflow-x:auto}
+.scroll-x::-webkit-scrollbar{height:4px}
+.scroll-x::-webkit-scrollbar-track{background:transparent}
+.scroll-x::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* ─── ACTIVITY ─── */
+.activity-grid{display:grid;grid-template-columns:1fr;gap:16px}
 </style>
 </head>
 <body>
 
-<!-- Aurora background layers -->
-<div class="aurora-bg">
-  <div class="aurora-layer aurora-layer--1"></div>
-  <div class="aurora-layer aurora-layer--2"></div>
+<!-- ═══ TOP NAV ═══ -->
+<nav class="topnav">
+  <div class="topnav-brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span>betterer-ratings</span>
+  </div>
+  <div class="topnav-right">
+    <div class="topnav-status">
+      <span class="dot"></span>
+      <span id="nav-last-update">Connecting…</span>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══ TAB BAR ═══ -->
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="overview">Overview</button>
+  <button class="tab-btn" data-tab="queue">Queue</button>
+  <button class="tab-btn" data-tab="providers">Providers</button>
+  <button class="tab-btn" data-tab="activity">Activity</button>
 </div>
 
-<!-- SVG defs for ring gradients -->
-<svg width="0" height="0" style="position:absolute">
-  <defs>
-    <linearGradient id="grad-teal" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#00d4aa"/>
-      <stop offset="100%" stop-color="#0ea5e9"/>
-    </linearGradient>
-    <linearGradient id="grad-blue" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#0ea5e9"/>
-      <stop offset="100%" stop-color="#6366f1"/>
-    </linearGradient>
-    <linearGradient id="grad-violet" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#8b5cf6"/>
-      <stop offset="100%" stop-color="#c084fc"/>
-    </linearGradient>
-  </defs>
-</svg>
+<!-- ═══ MAIN ═══ -->
+<div class="main">
 
-<div class="app-wrapper">
+  <!-- ── TAB: OVERVIEW ── -->
+  <div class="tab-panel active" id="tab-overview">
+    <div class="stats-grid" id="stats-grid">
+      <!-- filled by JS -->
+    </div>
 
-  <!-- ═══════ TOP BAR ═══════ -->
-  <header class="top-bar">
-    <div class="top-bar__brand">
-      <span class="top-bar__title">betterer-ratings</span>
-      <span class="top-bar__version">Aurora v1</span>
-    </div>
-    <nav class="top-bar__nav">
-      <a href="/" class="active">v1</a>
-      <a href="/v2">v2</a>
-      <a href="/v3">v3</a>
-    </nav>
-    <div class="top-bar__meta">
-      <span class="top-bar__refresh-dot"></span>
-      <span id="lastRefresh">Loading…</span>
-    </div>
-  </header>
-
-  <!-- ═══════ HERO STATS ═══════ -->
-  <section class="hero-stats" id="heroStats">
-    <div class="glass hero-card">
-      <span class="hero-card__icon">📦</span>
-      <span class="hero-card__value" data-counter="titles_total">—</span>
-      <span class="hero-card__label">Total Titles</span>
-    </div>
-    <div class="glass hero-card">
-      <span class="hero-card__icon">⭐</span>
-      <span class="hero-card__value" data-counter="ratings_today">—</span>
-      <span class="hero-card__label">Ratings Today</span>
-    </div>
-    <div class="glass hero-card">
-      <span class="hero-card__icon">📊</span>
-      <span class="hero-card__value" data-counter="ratings_total">—</span>
-      <span class="hero-card__label">Ratings Total</span>
-    </div>
-    <div class="glass hero-card">
-      <span class="hero-card__icon">🔗</span>
-      <span class="hero-card__value" data-counter="mappings_today">—</span>
-      <span class="hero-card__label">Mappings Today</span>
-    </div>
-    <div class="glass hero-card">
-      <span class="hero-card__icon">🎬</span>
-      <span class="hero-card__value" data-counter="episodes_today">—</span>
-      <span class="hero-card__label">Episodes Today</span>
-    </div>
-    <div class="glass hero-card">
-      <span class="hero-card__icon">📋</span>
-      <span class="hero-card__value" data-counter="queue_pending">—</span>
-      <span class="hero-card__label">Queue Pending</span>
-    </div>
-  </section>
-
-  <!-- ═══════ TWO-COLUMN: QUEUE + PROVIDERS ═══════ -->
-  <section class="two-col">
-    <!-- Queue Status -->
-    <div class="glass panel" id="queuePanel">
-      <h2 class="panel__title"><span class="panel__title-accent"></span>Queue Status</h2>
-      <div class="queue-rings" id="queueRings">
-        <!-- Rendered by JS -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Submission Trend</span>
+        <div class="trend-meta">
+          <span class="panel-badge" id="trend-total"></span>
+          <div class="trend-legend">
+            <span><i style="--legend-color:#54d18a"></i>Ratings</span>
+            <span><i style="--legend-color:#8d7bd9"></i>Mappings</span>
+            <span><i style="--legend-color:#d6a545"></i>Episodes</span>
+          </div>
+        </div>
+      </div>
+      <div class="panel-body chart-container trend-chart" id="trend-chart">
+        <!-- SVG injected -->
       </div>
     </div>
 
-    <!-- Provider Status -->
-    <div class="glass panel" id="providerPanel">
-      <h2 class="panel__title"><span class="panel__title-accent"></span>Provider Status</h2>
-      <div class="provider-list" id="providerList">
-        <!-- Rendered by JS -->
+    <div class="two-col">
+      <div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Titles by Type</span></div>
+          <div class="panel-body" id="titles-bars"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Mappings by Type</span></div>
+          <div class="panel-body"><div class="scroll-x"><table class="data-table" id="mappings-table"><thead><tr><th>Type</th><th class="r">Total</th><th class="r">Submitted</th><th class="r">Pending</th><th class="r">Failed</th></tr></thead><tbody></tbody></table></div></div>
+        </div>
       </div>
-    </div>
-  </section>
-
-  <!-- ═══════ DATABASE BREAKDOWN ═══════ -->
-  <section class="db-grid">
-    <div class="glass panel" id="titleBreakdown" style="animation-delay:0.4s">
-      <h2 class="panel__title"><span class="panel__title-accent"></span>Titles by Type</h2>
-      <div class="bar-vis" id="titleBars"></div>
-    </div>
-    <div class="glass panel" id="ratingBreakdown" style="animation-delay:0.42s">
-      <h2 class="panel__title"><span class="panel__title-accent"></span>Ratings by Source</h2>
-      <div class="pills-wrap" id="ratingPills"></div>
-    </div>
-  </section>
-
-  <!-- Extra: Mappings by type -->
-  <section class="db-grid">
-    <div class="glass panel" id="mappingBreakdown" style="animation-delay:0.43s">
-      <h2 class="panel__title"><span class="panel__title-accent"></span>Mappings by Type</h2>
-      <div class="mapping-pills pills-wrap" id="mappingPills"></div>
-    </div>
-    <div class="glass panel" id="episodeBreakdown" style="animation-delay:0.44s">
-      <h2 class="panel__title"><span class="panel__title-accent"></span>Episodes by Status</h2>
-      <div class="pills-wrap" id="episodePills"></div>
-    </div>
-  </section>
-
-  <!-- ═══════ SUBMISSION HISTORY ═══════ -->
-  <div class="glass chart-wrap" id="chartWrap">
-    <h2 class="panel__title"><span class="panel__title-accent"></span>Submission History</h2>
-    <div class="chart-container" id="chartContainer">
-      <div class="empty-state">Loading chart data…</div>
-    </div>
-    <div class="chart-legend">
-      <div class="chart-legend__item"><span class="chart-legend__swatch" style="background:var(--accent-start)"></span>Ratings</div>
-      <div class="chart-legend__item"><span class="chart-legend__swatch" style="background:#0ea5e9"></span>Mappings</div>
-      <div class="chart-legend__item"><span class="chart-legend__swatch" style="background:#8b5cf6"></span>Episodes</div>
+      <div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Ratings by Source</span></div>
+          <div class="panel-body"><div class="scroll-x"><table class="data-table" id="ratings-table"><thead><tr><th>Source</th><th class="r">Count</th><th class="r">Submitted</th><th class="r">Pending</th><th class="r">Failed</th></tr></thead><tbody></tbody></table></div></div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- ═══════ RECENT ACTIVITY ═══════ -->
-  <div class="glass activity-wrap" id="activityWrap">
-    <h2 class="panel__title"><span class="panel__title-accent"></span>Recent Activity</h2>
-    <table class="activity-table" id="activityTable">
-      <thead>
-        <tr>
-          <th>Title</th>
-          <th>Type</th>
-          <th>TMDB Vote</th>
-          <th>Rating Sources</th>
-          <th>Status</th>
-          <th>Time</th>
-        </tr>
-      </thead>
-      <tbody id="activityBody">
-        <tr><td colspan="6" class="empty-state">Loading…</td></tr>
-      </tbody>
-    </table>
+  <!-- ── TAB: QUEUE ── -->
+  <div class="tab-panel" id="tab-queue">
+    <div class="kpi-strip" id="queue-health"></div>
+    <div class="three-col" id="queue-cards"></div>
   </div>
 
-  <!-- ═══════ FOOTER: DAILY vs TOTAL ═══════ -->
-  <section class="footer-comp">
-    <div class="glass footer-card" id="footerToday">
-      <h3 class="footer-card__heading">📅 Today's Activity</h3>
-      <div class="footer-metrics">
-        <div class="footer-metric">
-          <div class="footer-metric__val footer-metric__val--accent" data-counter="ft_ratings">—</div>
-          <div class="footer-metric__label">Ratings</div>
-        </div>
-        <div class="footer-metric">
-          <div class="footer-metric__val footer-metric__val--accent" data-counter="ft_mappings">—</div>
-          <div class="footer-metric__label">Mappings</div>
-        </div>
-        <div class="footer-metric">
-          <div class="footer-metric__val footer-metric__val--accent" data-counter="ft_episodes">—</div>
-          <div class="footer-metric__label">Episodes</div>
-        </div>
-      </div>
-    </div>
-    <div class="glass footer-card" id="footerTotal">
-      <h3 class="footer-card__heading">🏛️ All-Time Totals</h3>
-      <div class="footer-metrics">
-        <div class="footer-metric">
-          <div class="footer-metric__val" data-counter="fa_ratings">—</div>
-          <div class="footer-metric__label">Ratings</div>
-        </div>
-        <div class="footer-metric">
-          <div class="footer-metric__val" data-counter="fa_mappings">—</div>
-          <div class="footer-metric__label">Mappings</div>
-        </div>
-        <div class="footer-metric">
-          <div class="footer-metric__val" data-counter="fa_episodes">—</div>
-          <div class="footer-metric__label">Episodes</div>
-        </div>
-      </div>
-    </div>
-  </section>
+  <!-- ── TAB: PROVIDERS ── -->
+  <div class="tab-panel" id="tab-providers">
+    <div class="kpi-strip" id="provider-summary"></div>
+    <div class="three-col" id="provider-cards"></div>
+  </div>
 
-</div><!-- /app-wrapper -->
+  <!-- ── TAB: ACTIVITY ── -->
+  <div class="tab-panel" id="tab-activity">
+    <div class="activity-grid">
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Recent Titles</span><span class="panel-badge" id="recent-count"></span></div>
+        <div class="panel-body"><div class="scroll-x"><table class="recent-table compact data-table" id="recent-table"><thead><tr><th>Title</th><th>Type</th><th class="r">Vote</th><th>Ratings</th><th>Enriched</th><th>Error</th></tr></thead><tbody></tbody></table></div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
 
 <script>
-/* ═══════════════════════════════════════════════════════════════
-   DATA LAYER
-   ═══════════════════════════════════════════════════════════════ */
-const API = {
-  stats:    '/api/stats',
-  services: '/api/services',
-  titles:   '/api/titles/summary',
-  ratings:  '/api/ratings/summary',
-  mappings: '/api/mappings/summary',
-  episodes: '/api/episodes/summary',
-  history:  '/api/metrics/history',
-  recent:   '/api/titles/recent',
-  daily:    '/api/titles/daily',
-};
+/* ═══════════════════════════════════════════
+   betterer-ratings dashboard
+   ═══════════════════════════════════════════ */
 
-let DATA = {};
-let PREV = {};
-let isFirstLoad = true;
+// ─── Helpers ───
+const fmt = n => n == null ? '—' : Number(n).toLocaleString();
+const fmtDec = (n,d=1) => n == null ? '—' : Number(n).toFixed(d);
+const esc = s => {const d=document.createElement('div');d.textContent=s;return d.innerHTML};
 
-async function fetchJSON(url) {
-  try {
-    const r = await fetch(url);
-    if (!r.ok) return null;
-    return await r.json();
-  } catch { return null; }
+function epochMillis(ts) {
+  if (ts == null || ts === '') return null;
+  const numeric = Number(ts);
+  if (!Number.isFinite(numeric) || numeric <= 0) return null;
+  return numeric < 1000000000000 ? numeric * 1000 : numeric;
 }
 
-async function fetchAll() {
-  const keys = Object.keys(API);
-  const results = await Promise.allSettled(keys.map(k => fetchJSON(API[k])));
-  PREV = { ...DATA };
-  keys.forEach((k, i) => {
-    if (results[i].status === 'fulfilled' && results[i].value) {
-      DATA[k] = results[i].value;
-    }
-  });
-  render();
-  isFirstLoad = false;
-  document.getElementById('lastRefresh').textContent = 'Updated ' + new Date().toLocaleTimeString();
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   UTILITIES
-   ═══════════════════════════════════════════════════════════════ */
-function fmt(n) {
-  if (n == null || isNaN(n)) return '0';
-  return Number(n).toLocaleString();
+function durationLabel(seconds) {
+  const abs = Math.abs(seconds);
+  if (abs < 5) return 'just now';
+  if (abs < 60) return Math.floor(abs)+'s';
+  if (abs < 3600) return Math.floor(abs/60)+'m';
+  if (abs < 86400) return Math.floor(abs/3600)+'h';
+  return Math.floor(abs/86400)+'d';
 }
 
 function relTime(ts) {
-  if (!ts) return '—';
-  const d = new Date(ts);
-  const diff = (Date.now() - d.getTime()) / 1000;
-  if (diff < 60) return Math.floor(diff) + 's ago';
-  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
-  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
-  return Math.floor(diff / 86400) + 'd ago';
+  const ms = epochMillis(ts);
+  if (ms == null) return '—';
+  const d = new Date(epochMillis(ts));
+  if (isNaN(d)) return '—';
+  const s = Math.floor((Date.now()-ms)/1000);
+  const label = durationLabel(s);
+  if (label === 'just now') return label;
+  return s < 0 ? `in ${label}` : `${label} ago`;
 }
 
-/* Count-up animation */
-const counterEls = {};
-const counterTargets = {};
+const labelColors = {
+  IM:'#f59e0b',RT:'#ef4444',MC:'#8b5cf6',TM:'#3b82f6',PC:'#10b981',LB:'#f97316',TR:'#ec4899',ML:'#06b6d4',RE:'#84cc16',
+  imdb:'#f59e0b',trakt:'#ec4899',tvdb:'#3b82f6',mal:'#06b6d4'
+};
+function labelColor(l){return labelColors[l]||labelColors[String(l||'').toLowerCase()]||'#71717a'}
 
-function animateCounter(key, target) {
-  const el = document.querySelector(`[data-counter="${key}"]`);
-  if (!el) return;
-  const prev = counterTargets[key] || 0;
-  counterTargets[key] = target;
-  if (prev === target && !isFirstLoad) { el.textContent = fmt(target); return; }
+// ─── Tabs ───
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
 
-  const start = prev;
-  const duration = isFirstLoad ? 800 : 400;
-  const startTime = performance.now();
+// ─── State ───
+let state = {};
 
-  function tick(now) {
-    const elapsed = now - startTime;
-    const progress = Math.min(elapsed / duration, 1);
-    const eased = 1 - Math.pow(1 - progress, 3);
-    const current = Math.round(start + (target - start) * eased);
-    el.textContent = fmt(current);
-    if (progress < 1) requestAnimationFrame(tick);
-  }
-  requestAnimationFrame(tick);
+async function fetchJSON(url) {
+  try { const r = await fetch(url); if(!r.ok) throw 0; return await r.json(); }
+  catch(e){ return null; }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   RENDER FUNCTIONS
-   ═══════════════════════════════════════════════════════════════ */
+async function loadAll() {
+  const [stats,services,titlesSummary,ratingsSummary,mappingsSummary,episodesSummary,metricsHistory,titlesRecent,titlesDaily] = await Promise.all([
+    fetchJSON('/api/stats'),
+    fetchJSON('/api/services'),
+    fetchJSON('/api/titles/summary'),
+    fetchJSON('/api/ratings/summary'),
+    fetchJSON('/api/mappings/summary'),
+    fetchJSON('/api/episodes/summary'),
+    fetchJSON('/api/metrics/history'),
+    fetchJSON('/api/titles/recent'),
+    fetchJSON('/api/titles/daily'),
+  ]);
+  state = {stats,services,titlesSummary,ratingsSummary,mappingsSummary,episodesSummary,metricsHistory,titlesRecent,titlesDaily};
+  render();
+  document.getElementById('nav-last-update').textContent = 'Updated '+new Date().toLocaleTimeString();
+}
+
+// ─── Render ───
 function render() {
-  renderHeroStats();
-  renderQueue();
+  renderStats();
+  renderTrend();
+  renderTitlesBars();
+  renderMappingsTable();
+  renderRatingsTable();
+  renderQueueHealth();
+  renderQueueCards();
+  renderProviderSummary();
   renderProviders();
-  renderTitleBars();
-  renderRatingPills();
-  renderMappingPills();
-  renderEpisodePills();
-  renderChart();
-  renderRecentActivity();
-  renderFooter();
+  renderRecent();
 }
 
-/* ── Hero Stats ── */
-function renderHeroStats() {
-  const s = DATA.stats?.summary || {};
-  const q = DATA.stats?.queue || {};
-  animateCounter('titles_total', s.titles_total || 0);
-  animateCounter('ratings_today', s.ratings_today || 0);
-  animateCounter('ratings_total', s.ratings_total || 0);
-  animateCounter('mappings_today', s.mappings_today || 0);
-  animateCounter('episodes_today', s.episode_ratings_today || 0);
-  const totalPending = (q.ratings_pending || 0) + (q.episode_ratings_pending || 0) + (q.mappings_pending || 0);
-  animateCounter('queue_pending', totalPending);
-}
+// ── Stats Hero Row ──
+function renderStats() {
+  const s = state.stats?.summary || {};
+  const q = state.stats?.queue || {};
+  const today = s.day || new Date().toISOString().slice(0,10);
+  const dailyTitles = state.titlesDaily?.daily_titles || [];
+  const titleDay = dailyTitles.find(d=>d.day_key === today);
 
-/* ── Queue Rings ── */
-function renderQueue() {
-  const q = DATA.stats?.queue || {};
-  const types = [
-    { key: 'ratings', label: 'Ratings', cls: 'ratings',
-      pending: q.ratings_pending || 0, inflight: q.ratings_in_flight || 0, failed: q.ratings_failed || 0 },
-    { key: 'mappings', label: 'Mappings', cls: 'mappings',
-      pending: q.mappings_pending || 0, inflight: q.mappings_in_flight || 0, failed: q.mappings_failed || 0 },
-    { key: 'episodes', label: 'Episodes', cls: 'episodes',
-      pending: q.episode_ratings_pending || 0, inflight: q.episode_ratings_in_flight || 0, failed: q.episode_ratings_failed || 0 },
+  const pendingTotal = (q.ratings_pending||0)+(q.episode_ratings_pending||0)+(q.mappings_pending||0);
+  const inFlightTotal = (q.ratings_in_flight||0)+(q.episode_ratings_in_flight||0)+(q.mappings_in_flight||0);
+  const failedTotal = (q.ratings_failed||0)+(q.episode_ratings_failed||0)+(q.mappings_failed||0);
+
+  const cards = [
+    {label:'Titles Today',value:fmt(titleDay?.title_count||0),total:fmt(s.titles_total),totalLabel:'total titles',cls:'stat-titles'},
+    {label:'Ratings Today',value:fmt(s.ratings_today),total:fmt(s.ratings_total),totalLabel:'total ratings',cls:'stat-ratings'},
+    {label:'Mappings Today',value:fmt(s.mappings_today),total:fmt(s.mappings_total),totalLabel:'total mappings',cls:'stat-mappings'},
+    {label:'Episodes Today',value:fmt(s.episode_ratings_today),total:fmt(s.episode_ratings_total),totalLabel:'total episodes',cls:'stat-episodes'},
+    {label:'Queue Pending',value:fmt(pendingTotal),total:fmt(inFlightTotal),totalLabel:'in-flight now',cls:'stat-pending'},
+    {label:'Queue Failed',value:fmt(failedTotal),total:fmt(pendingTotal),totalLabel:'pending backlog',cls:'stat-failed'},
   ];
 
-  // Get submitted totals from ratings/mappings/episodes summaries
-  const rSub = DATA.ratings?.by_status?.find(s => s.pmdb_status === 'submitted');
-  const mSub = DATA.mappings?.by_status?.find(s => s.pmdb_status === 'submitted');
-  const eSub = DATA.episodes?.by_status?.find(s => s.pmdb_status === 'submitted');
-  const submitted = {
-    ratings: rSub?.total || 0,
-    mappings: mSub?.total || 0,
-    episodes: eSub?.total || 0,
-  };
-
-  const container = document.getElementById('queueRings');
-  const circumference = 2 * Math.PI * 44; // r=44
-
-  let html = '';
-  types.forEach(t => {
-    const total = t.pending + t.inflight + t.failed + (submitted[t.key] || 0);
-    const done = submitted[t.key] || 0;
-    const pct = total > 0 ? Math.round((done / total) * 100) : 100;
-    const offset = circumference - (circumference * pct / 100);
-
-    html += `
-      <div class="ring-item">
-        <svg class="ring-svg" viewBox="0 0 110 110">
-          <circle class="ring-bg" cx="55" cy="55" r="44"/>
-          <circle class="ring-fg ring-fg--${t.cls}" cx="55" cy="55" r="44"
-            stroke-dasharray="${circumference}"
-            stroke-dashoffset="${isFirstLoad ? circumference : offset}"
-            data-target-offset="${offset}"/>
-          <text class="ring-center" x="55" y="55" text-anchor="middle" dominant-baseline="central">${pct}%</text>
-        </svg>
-        <span class="ring-label">${t.label}</span>
-        <div class="ring-stats">
-          <span class="ring-stat"><span class="ring-stat__dot ring-stat__dot--pending"></span>${fmt(t.pending)}</span>
-          <span class="ring-stat"><span class="ring-stat__dot ring-stat__dot--inflight"></span>${fmt(t.inflight)}</span>
-          <span class="ring-stat"><span class="ring-stat__dot ring-stat__dot--failed"></span>${fmt(t.failed)}</span>
-        </div>
-      </div>`;
-  });
-
-  container.innerHTML = html;
-
-  // Animate rings on first load
-  if (isFirstLoad) {
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        container.querySelectorAll('.ring-fg').forEach(el => {
-          el.style.strokeDashoffset = el.dataset.targetOffset;
-        });
-      }, 100);
-    });
-  }
+  document.getElementById('stats-grid').innerHTML = cards.map(c=>`
+    <div class="stat-card ${c.cls}">
+      <span class="stat-accent"></span>
+      <div class="stat-label">${c.label}</div>
+      <div class="stat-value">${c.value}</div>
+      <div class="stat-total">${c.total}</div>
+      <div class="stat-total-label">${c.totalLabel}</div>
+    </div>
+  `).join('');
 }
 
-/* ── Providers ── */
-function renderProviders() {
-  const services = DATA.services?.services || [];
-  const container = document.getElementById('providerList');
-  if (!services.length) {
-    container.innerHTML = '<div class="empty-state">No provider data</div>';
+// ── Trend Chart ──
+function renderTrend() {
+  const daily = state.metricsHistory?.daily || [];
+  const totals = state.metricsHistory?.totals;
+  if (totals) {
+    document.getElementById('trend-total').textContent = `${fmt(totals.ratings)} ratings · ${fmt(totals.mappings)} mappings · ${fmt(totals.episode_ratings)} episodes`;
+  }
+  const chart = document.getElementById('trend-chart');
+  if (daily.length < 2) {
+    chart.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);font-size:.8rem">No trend data available</div>';
     return;
   }
+  const W = 920, H = 260, PAD_L = 66, PAD_R = 22, PAD_T = 18, PAD_B = 38;
+  const cw = W - PAD_L - PAD_R, ch = H - PAD_T - PAD_B;
+  const n = daily.length;
 
-  const nameMap = {
-    tmdb: 'TMDB',
-    mdblist: 'MDBList',
-    pmdb_api: 'PMDB API',
-    pmdb_ratings: 'PMDB Ratings',
-    pmdb_mappings: 'PMDB Mappings',
-  };
+  const maxStack = Math.max(...daily.map(d=>(d.ratings||0)+(d.mappings||0)+(d.episode_ratings||0)),1);
+  const slot = cw / n;
+  const barW = Math.max(5, Math.min(18, slot * .62));
+  const segments = [
+    {key:'episode_ratings',label:'Episodes',color:'#d6a545',cls:'episodes'},
+    {key:'mappings',label:'Mappings',color:'#8d7bd9',cls:'mappings'},
+    {key:'ratings',label:'Ratings',color:'#54d18a',cls:'ratings'},
+  ];
 
-  container.innerHTML = services.map(svc => {
-    const name = nameMap[svc.service] || svc.service;
-    const dotClass = svc.is_paused ? 'status-dot--paused' : 'status-dot--active';
-    const ratePct = svc.rate_limit > 0 ? Math.round((svc.rate_remaining / svc.rate_limit) * 100) : 100;
-    const rateText = svc.rate_limit > 0 ? `${fmt(svc.rate_remaining)}/${fmt(svc.rate_limit)}` : 'No limit';
-    const status = svc.last_status;
-    let statusClass = 'provider-status-code--na';
-    let statusText = '—';
-    if (status != null) {
-      statusText = String(status);
-      if (status >= 200 && status < 300) statusClass = 'provider-status-code--ok';
-      else if (status >= 400 && status < 500) statusClass = 'provider-status-code--warn';
-      else if (status >= 500) statusClass = 'provider-status-code--err';
-    }
-    const pauseNote = svc.is_paused ? (svc.pause_reason || 'Paused') : '';
+  const gridLines = 4;
+  let grid = '';
+  for(let i=0;i<=gridLines;i++){
+    const y = PAD_T + (i/gridLines)*ch;
+    const val = Math.round(maxStack * (1 - i/gridLines));
+    grid += `<line x1="${PAD_L}" y1="${y.toFixed(1)}" x2="${W-PAD_R}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,.045)" stroke-width="1"/>`;
+    grid += `<text x="${PAD_L-10}" y="${(y+3.5).toFixed(1)}" text-anchor="end" fill="#69737f" font-size="10" font-family="'JetBrains Mono',monospace">${fmt(val)}</text>`;
+  }
+  grid += `<line x1="${PAD_L}" y1="${PAD_T+ch}" x2="${W-PAD_R}" y2="${PAD_T+ch}" stroke="rgba(255,255,255,.12)" stroke-width="1"/>`;
 
-    return `
-      <div class="provider-row">
-        <span class="status-dot ${dotClass}"></span>
-        <div class="provider-name">${name}${pauseNote ? `<small>⏸ ${pauseNote}</small>` : ''}</div>
-        <div class="rate-bar-wrap">
-          <div class="rate-bar"><div class="rate-bar__fill" style="width:${ratePct}%"></div></div>
-          <span class="rate-bar__text">${rateText}</span>
-        </div>
-        <span class="provider-status-code ${statusClass}">${statusText}</span>
-      </div>`;
-  }).join('');
-}
-
-/* ── Title Bars ── */
-function renderTitleBars() {
-  const byType = DATA.titles?.by_type || [];
-  const container = document.getElementById('titleBars');
-  if (!byType.length) { container.innerHTML = '<div class="empty-state">No title data</div>'; return; }
-
-  const maxTotal = Math.max(...byType.map(t => t.total || 0), 1);
-  container.innerHTML = byType.map(t => {
-    const pct = Math.round(((t.total || 0) / maxTotal) * 100);
-    return `
-      <div class="bar-vis__row">
-        <span class="bar-vis__label">${t.media_type || '?'}</span>
-        <div class="bar-vis__track"><div class="bar-vis__fill" style="width:${pct}%"></div></div>
-        <span class="bar-vis__count">${fmt(t.total)}</span>
-      </div>`;
-  }).join('');
-}
-
-/* ── Rating Pills ── */
-function renderRatingPills() {
-  const byLabel = DATA.ratings?.by_label || [];
-  const container = document.getElementById('ratingPills');
-  if (!byLabel.length) { container.innerHTML = '<div class="empty-state">No rating data</div>'; return; }
-
-  container.innerHTML = byLabel.map(r => `
-    <div class="rating-pill">
-      <span class="rating-pill__dot rc-${r.label}"></span>
-      <span class="rating-pill__name">${r.label}</span>
-      <span class="rating-pill__count">${fmt(r.total)}</span>
-    </div>`).join('');
-}
-
-/* ── Mapping Pills ── */
-function renderMappingPills() {
-  const byType = DATA.mappings?.by_type || [];
-  const container = document.getElementById('mappingPills');
-  if (!byType.length) { container.innerHTML = '<div class="empty-state">No mapping data</div>'; return; }
-
-  const colors = { imdb: '#f5c518', tvdb: '#6cad49', mal: '#2e51a2', anilist: '#3db4f2', anidb: '#a12c2c', trakt: '#ed1c24' };
-  container.innerHTML = byType.map(m => `
-    <div class="rating-pill">
-      <span class="rating-pill__dot" style="background:${colors[m.id_type] || '#64748b'}"></span>
-      <span class="rating-pill__name">${m.id_type}</span>
-      <span class="rating-pill__count">${fmt(m.total)}</span>
-    </div>`).join('');
-}
-
-/* ── Episode Pills ── */
-function renderEpisodePills() {
-  const byStatus = DATA.episodes?.by_status || [];
-  const container = document.getElementById('episodePills');
-  const total = DATA.episodes?.total || 0;
-
-  if (!byStatus.length && !total) { container.innerHTML = '<div class="empty-state">No episode data</div>'; return; }
-
-  const statusColors = { submitted: 'var(--success)', pending: 'var(--warning)', failed: 'var(--error)', queued: 'var(--accent-end)' };
-  let html = `<div class="rating-pill"><span class="rating-pill__dot" style="background:var(--accent-start)"></span><span class="rating-pill__name">Total</span><span class="rating-pill__count">${fmt(total)}</span></div>`;
-  html += byStatus.map(s => `
-    <div class="rating-pill">
-      <span class="rating-pill__dot" style="background:${statusColors[s.pmdb_status] || '#64748b'}"></span>
-      <span class="rating-pill__name">${s.pmdb_status}</span>
-      <span class="rating-pill__count">${fmt(s.total)}</span>
-    </div>`).join('');
-  container.innerHTML = html;
-}
-
-/* ── Chart ── */
-function renderChart() {
-  const daily = DATA.history?.daily || [];
-  const container = document.getElementById('chartContainer');
-  if (!daily.length) { container.innerHTML = '<div class="empty-state">No history data</div>'; return; }
-
-  const last30 = daily.slice(-30);
-  const maxVal = Math.max(...last30.map(d => (d.ratings || 0) + (d.mappings || 0) + (d.episode_ratings || 0)), 1);
-
-  const svgW = 900, svgH = 260, padL = 50, padR = 20, padT = 20, padB = 45;
-  const chartW = svgW - padL - padR;
-  const chartH = svgH - padT - padB;
-  const barGroupW = chartW / last30.length;
-  const barW = Math.max(barGroupW * 0.22, 3);
-  const gap = 2;
-
-  // Y-axis ticks
-  const yTicks = 5;
-  let yLines = '';
-  for (let i = 0; i <= yTicks; i++) {
-    const y = padT + (chartH / yTicks) * i;
-    const val = Math.round(maxVal - (maxVal / yTicks) * i);
-    yLines += `<line x1="${padL}" y1="${y}" x2="${svgW - padR}" y2="${y}" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>`;
-    yLines += `<text x="${padL - 8}" y="${y + 4}" text-anchor="end" fill="#64748b" font-size="10" font-family="var(--font-body)">${fmt(val)}</text>`;
+  let xLabels = '';
+  const step = Math.max(1,Math.ceil(n/7));
+  for(let i=0;i<n;i++){
+    if(i % step !== 0 && i !== n-1) continue;
+    const d = daily[i].date||'';
+    const short = d.slice(5);
+    const x = PAD_L + slot*i + slot/2;
+    xLabels += `<text x="${x.toFixed(1)}" y="${PAD_T+ch+22}" text-anchor="middle" fill="#69737f" font-size="10" font-family="'JetBrains Mono',monospace">${short}</text>`;
   }
 
   let bars = '';
-  last30.forEach((d, i) => {
-    const x = padL + i * barGroupW + barGroupW * 0.15;
-    const rH = chartH * ((d.ratings || 0) / maxVal);
-    const mH = chartH * ((d.mappings || 0) / maxVal);
-    const eH = chartH * ((d.episode_ratings || 0) / maxVal);
-    const baseY = padT + chartH;
-
-    // Ratings bar
-    bars += `<rect x="${x}" y="${baseY - rH}" width="${barW}" height="${Math.max(rH, 0)}" rx="2" fill="url(#grad-teal)" opacity="0.85">
-      <animate attributeName="height" from="0" to="${Math.max(rH, 0)}" dur="0.6s" fill="freeze"/>
-      <animate attributeName="y" from="${baseY}" to="${baseY - rH}" dur="0.6s" fill="freeze"/>
-    </rect>`;
-    // Mappings bar
-    bars += `<rect x="${x + barW + gap}" y="${baseY - mH}" width="${barW}" height="${Math.max(mH, 0)}" rx="2" fill="#0ea5e9" opacity="0.85">
-      <animate attributeName="height" from="0" to="${Math.max(mH, 0)}" dur="0.6s" fill="freeze" begin="0.1s"/>
-      <animate attributeName="y" from="${baseY}" to="${baseY - mH}" dur="0.6s" fill="freeze" begin="0.1s"/>
-    </rect>`;
-    // Episodes bar
-    bars += `<rect x="${x + 2 * (barW + gap)}" y="${baseY - eH}" width="${barW}" height="${Math.max(eH, 0)}" rx="2" fill="#8b5cf6" opacity="0.85">
-      <animate attributeName="height" from="0" to="${Math.max(eH, 0)}" dur="0.6s" fill="freeze" begin="0.2s"/>
-      <animate attributeName="y" from="${baseY}" to="${baseY - eH}" dur="0.6s" fill="freeze" begin="0.2s"/>
-    </rect>`;
-
-    // X-axis date label (show every few)
-    if (last30.length <= 15 || i % Math.ceil(last30.length / 12) === 0) {
-      const dateLabel = d.date ? d.date.slice(5) : '';
-      bars += `<text x="${x + barW}" y="${baseY + 18}" text-anchor="middle" fill="#64748b" font-size="9" font-family="var(--font-body)">${dateLabel}</text>`;
-    }
+  let hits = '';
+  daily.forEach((d,i)=>{
+    const x = PAD_L + slot*i + (slot-barW)/2;
+    let cursor = PAD_T + ch;
+    segments.forEach(seg=>{
+      const value = d[seg.key] || 0;
+      if (value <= 0) return;
+      const h = Math.max(1.4, (value/maxStack)*ch);
+      cursor -= h;
+      bars += `<rect class="trend-segment trend-${seg.cls}" data-index="${i}" x="${x.toFixed(1)}" y="${cursor.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" rx="2" fill="${seg.color}" opacity=".86">
+        <title>${d.date || ''}: ${seg.label} ${fmt(value)}</title>
+      </rect>`;
+    });
+    hits += `<rect class="trend-hit" data-index="${i}" x="${(PAD_L+slot*i).toFixed(1)}" y="${PAD_T}" width="${slot.toFixed(1)}" height="${ch}" fill="transparent"/>`;
   });
 
-  container.innerHTML = `<svg class="chart-svg" viewBox="0 0 ${svgW} ${svgH}">${yLines}${bars}</svg>`;
+  const svg = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Submission trend for recent days">
+    ${grid}${xLabels}
+    ${bars}
+    ${hits}
+  </svg><div id="trend-tooltip" class="chart-tooltip" hidden></div>`;
+  chart.innerHTML = svg;
+  chart.querySelectorAll('.trend-hit').forEach(hit=>{
+    hit.addEventListener('pointermove', event=>showTrendTooltip(event, Number(hit.dataset.index)));
+    hit.addEventListener('pointerleave', hideTrendTooltip);
+  });
 }
 
-/* ── Recent Activity ── */
-function renderRecentActivity() {
-  const titles = DATA.recent?.titles || [];
-  const tbody = document.getElementById('activityBody');
-  if (!titles.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No recent titles</td></tr>'; return; }
+function showTrendTooltip(event,index) {
+  const daily = state.metricsHistory?.daily || [];
+  const point = daily[index];
+  const tooltip = document.getElementById('trend-tooltip');
+  const chart = document.getElementById('trend-chart');
+  if (!point || !tooltip || !chart) return;
+  const total = (point.ratings||0)+(point.mappings||0)+(point.episode_ratings||0);
+  const titleDay = (state.titlesDaily?.daily_titles || []).find(d=>d.day_key === point.date);
+  tooltip.innerHTML = `
+    <strong>${esc(point.date || 'Unknown day')}</strong>
+    <div class="row"><span>Titles</span><span>${fmt(titleDay?.title_count||0)}</span></div>
+    <div class="row"><span>Ratings</span><span>${fmt(point.ratings||0)}</span></div>
+    <div class="row"><span>Mappings</span><span>${fmt(point.mappings||0)}</span></div>
+    <div class="row"><span>Episodes</span><span>${fmt(point.episode_ratings||0)}</span></div>
+    <div class="row"><span>Total</span><span>${fmt(total)}</span></div>
+  `;
+  const bounds = chart.getBoundingClientRect();
+  const x = Math.min(Math.max(event.clientX - bounds.left, 96), bounds.width - 96);
+  const y = Math.min(Math.max(event.clientY - bounds.top, 74), bounds.height - 20);
+  tooltip.style.left = x+'px';
+  tooltip.style.top = y+'px';
+  tooltip.hidden = false;
+}
 
-  const ratingColors = { IM: '#f5c518', RT: '#fa320a', MC: '#66cc33', TM: '#01b4e4', PC: '#ff6b6b', LB: '#00c030', TR: '#ed1c24', ML: '#2e51a2', RE: '#d4a847' };
+function hideTrendTooltip() {
+  const tooltip = document.getElementById('trend-tooltip');
+  if (tooltip) tooltip.hidden = true;
+}
 
-  tbody.innerHTML = titles.map(t => {
-    const typeClass = t.media_type === 'movie' ? 'type-badge--movie' : 'type-badge--tv';
-    const vote = t.tmdb_vote_average != null ? Number(t.tmdb_vote_average).toFixed(1) : '—';
-    const ratings = (t.ratings || []);
-    const dots = ratings.map(r => {
-      const statusCls = r.pmdb_status === 'submitted' ? 'rating-dot--submitted' : (r.pmdb_status === 'failed' ? 'rating-dot--failed' : 'rating-dot--pending');
-      return `<span class="rating-dot ${statusCls}" style="background:${ratingColors[r.label] || '#64748b'}" title="${r.label}: ${r.score ?? '?'} (${r.pmdb_status})"></span>`;
+// ── Titles by Type bars ──
+function renderTitlesBars() {
+  const byType = state.titlesSummary?.by_type || [];
+  const max = Math.max(...byType.map(t=>t.total||0),1);
+  const colors = {movie:'#3b82f6',tv:'#8b5cf6',person:'#f59e0b'};
+  document.getElementById('titles-bars').innerHTML = byType.length === 0
+    ? '<div style="color:var(--text-muted);font-size:.8rem">No data</div>'
+    : byType.map(t=>{
+    const pct = ((t.total||0)/max*100);
+    const c = colors[t.media_type]||'#71717a';
+    return `<div class="hbar-row">
+      <span class="hbar-label">${esc(t.media_type||'?')}</span>
+      <div class="hbar-track"><div class="hbar-fill" style="width:${Math.max(pct,2)}%;background:${c}">${fmt(t.total)}</div></div>
+    </div>`;
+  }).join('');
+}
+
+// ── Mappings Table ──
+function renderMappingsTable() {
+  const byType = state.mappingsSummary?.by_type || [];
+  const tb = document.querySelector('#mappings-table tbody');
+  tb.innerHTML = byType.length===0
+    ? '<tr><td colspan="5" style="color:var(--text-muted)">No data</td></tr>'
+    : byType.map(m=>`<tr>
+    <td><span class="idot" style="background:${labelColor(m.id_type)}"></span>${esc(m.id_type||'')}</td>
+    <td class="mono">${fmt(m.total)}</td>
+    <td class="mono" style="color:var(--emerald)">${fmt(m.submitted)}</td>
+    <td class="mono" style="color:var(--amber)">${fmt(m.pending)}</td>
+    <td class="mono" style="color:var(--red)">${fmt(m.failed)}</td>
+  </tr>`).join('');
+}
+
+// ── Ratings Table ──
+function renderRatingsTable() {
+  const byLabel = state.ratingsSummary?.by_label || [];
+  const tb = document.querySelector('#ratings-table tbody');
+  tb.innerHTML = byLabel.length===0
+    ? '<tr><td colspan="5" style="color:var(--text-muted)">No data</td></tr>'
+    : byLabel.map(r=>`<tr>
+    <td><span class="idot" style="background:${labelColor(r.label)}"></span>${esc(r.label||'')}</td>
+    <td class="mono">${fmt(r.total)}</td>
+    <td class="mono" style="color:var(--emerald)">${fmt(r.submitted)}</td>
+    <td class="mono" style="color:var(--amber)">${fmt(r.pending)}</td>
+    <td class="mono" style="color:var(--red)">${fmt(r.failed)}</td>
+  </tr>`).join('');
+}
+
+// ── Queue Health ──
+function renderQueueHealth() {
+  const q = state.stats?.queue || {};
+  const s = state.stats?.summary || {};
+  const pending = (q.ratings_pending||0)+(q.mappings_pending||0)+(q.episode_ratings_pending||0);
+  const inflight = (q.ratings_in_flight||0)+(q.mappings_in_flight||0)+(q.episode_ratings_in_flight||0);
+  const failed = (q.ratings_failed||0)+(q.mappings_failed||0)+(q.episode_ratings_failed||0);
+  const submitted = (s.ratings_total||0)+(s.mappings_total||0)+(s.episode_ratings_total||0);
+  const tiles = [
+    {label:'Pending',value:pending,cls:pending?'warn':'good'},
+    {label:'In Flight',value:inflight,cls:inflight?'warn':'good'},
+    {label:'Failed',value:failed,cls:failed?'bad':'good'},
+    {label:'Submitted',value:submitted,cls:'good'},
+  ];
+  document.getElementById('queue-health').innerHTML = tiles.map(t=>`
+    <div class="kpi-tile">
+      <div class="kpi-label">${t.label}</div>
+      <div class="kpi-value ${t.cls}">${fmt(t.value)}</div>
+    </div>
+  `).join('');
+}
+
+// ── Queue Cards ──
+function renderQueueCards() {
+  const q = state.stats?.queue || {};
+  const rStatus = state.ratingsSummary?.by_status || [];
+  const mStatus = state.mappingsSummary?.by_status || [];
+  const eStatus = state.episodesSummary?.by_status || [];
+
+  function statusMap(arr){
+    const m={};(arr||[]).forEach(s=>{m[(s.pmdb_status||'').toLowerCase()]=s.total||0});return m;
+  }
+
+  const queues = [
+    {name:'Ratings',pending:q.ratings_pending||0,inflight:q.ratings_in_flight||0,failed:q.ratings_failed||0,statuses:statusMap(rStatus),color:'var(--emerald)'},
+    {name:'Mappings',pending:q.mappings_pending||0,inflight:q.mappings_in_flight||0,failed:q.mappings_failed||0,statuses:statusMap(mStatus),color:'var(--violet)'},
+    {name:'Episodes',pending:q.episode_ratings_pending||0,inflight:q.episode_ratings_in_flight||0,failed:q.episode_ratings_failed||0,statuses:statusMap(eStatus),color:'var(--amber)'},
+  ];
+
+  document.getElementById('queue-cards').innerHTML = queues.map(qc=>{
+    const total = Math.max(qc.pending+qc.inflight+qc.failed,1);
+    const pPct=(qc.pending/total*100).toFixed(1);
+    const iPct=(qc.inflight/total*100).toFixed(1);
+    const fPct=(qc.failed/total*100).toFixed(1);
+    const submitted = qc.statuses['submitted']||0;
+    const stateLabel = qc.failed ? 'Needs attention' : qc.inflight ? 'Working' : qc.pending ? 'Queued' : 'Clear';
+    const stateClass = qc.failed ? 'pill-failed' : (qc.inflight || qc.pending) ? 'pill-pending' : 'pill-active';
+    return `<div class="panel">
+      <div class="panel-header"><span class="panel-title">${qc.name} Queue</span></div>
+      <div class="panel-body">
+        <div class="queue-state">
+          <div>
+            <div class="q-big" style="color:${qc.color}">${fmt(qc.pending)}</div>
+            <div class="queue-state-label">pending</div>
+          </div>
+          <span class="pill ${stateClass}">${stateLabel}</span>
+        </div>
+        <div class="stacked-bar">
+          <span class="seg-pending" style="width:${pPct}%"></span>
+          <span class="seg-inflight" style="width:${iPct}%"></span>
+          <span class="seg-failed" style="width:${fPct}%"></span>
+        </div>
+        <div class="q-row">
+          <div class="q-item"><span class="pill pill-inflight">${fmt(qc.inflight)}</span> in-flight</div>
+          <div class="q-item"><span class="pill pill-failed">${fmt(qc.failed)}</span> failed</div>
+          <div class="q-item"><span class="pill pill-submitted">${fmt(submitted)}</span> submitted</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Provider Summary ──
+function renderProviderSummary() {
+  const svcs = state.services?.services || [];
+  const active = svcs.filter(s=>!s.is_paused).length;
+  const paused = svcs.filter(s=>s.is_paused).length;
+  const healthy = svcs.filter(s=>s.last_status>=200 && s.last_status<300).length;
+  const limited = svcs.find(s=>s.rate_limit);
+  const quota = limited ? `${fmt(limited.rate_remaining)} / ${fmt(limited.rate_limit)}` : '—';
+  const tiles = [
+    {label:'Active',value:active,cls:active===svcs.length?'good':'warn'},
+    {label:'Paused',value:paused,cls:paused?'bad':'good'},
+    {label:'HTTP OK',value:healthy,cls:healthy===svcs.length?'good':'warn'},
+    {label:'Rate Remaining',value:quota,cls:'good'},
+  ];
+  document.getElementById('provider-summary').innerHTML = tiles.map(t=>`
+    <div class="kpi-tile">
+      <div class="kpi-label">${t.label}</div>
+      <div class="kpi-value ${t.cls}">${t.value}</div>
+    </div>
+  `).join('');
+}
+
+// ── Providers ──
+function renderProviders() {
+  const svcs = state.services?.services || [];
+  document.getElementById('provider-cards').innerHTML = svcs.length===0
+    ? '<div class="panel"><div class="panel-body" style="color:var(--text-muted)">No provider data</div></div>'
+    : svcs.map(s=>{
+    const active = !s.is_paused;
+    const dotColor = active?'var(--emerald)':'var(--red)';
+    const limitPct = s.rate_limit ? Math.max(0,Math.min(100,((s.rate_remaining||0)/(s.rate_limit||1))*100)) : null;
+    const statusColor = !s.last_status ? 'var(--text-muted)' : s.last_status>=200&&s.last_status<300?'var(--emerald)':s.last_status>=400?'var(--red)':'var(--amber)';
+    return `<div class="panel">
+      <div class="provider-card">
+        <div class="provider-header">
+          <span class="provider-name"><span class="dot" style="background:${dotColor}"></span>${esc(s.service||'')}</span>
+          <span class="pill ${active?'pill-active':'pill-paused'}">${active?'ACTIVE':'PAUSED'}</span>
+        </div>
+        ${s.is_paused?`<div style="font-size:.7rem;color:var(--amber);margin-bottom:6px">
+          ${s.pause_reason?esc(s.pause_reason):''} ${s.pause_remaining_seconds?`· ${Math.ceil(s.pause_remaining_seconds)}s remaining`:''}
+        </div>`:''}
+        ${limitPct!==null?`
+        <div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--text-secondary);margin-top:4px">
+          <span>Rate Limit</span><span style="font-family:var(--font-mono)">${fmt(s.rate_remaining)} / ${fmt(s.rate_limit)}</span>
+        </div>
+        <div class="rate-bar-track"><div class="rate-bar-fill" style="width:${limitPct}%;${limitPct<20?'background:var(--red)':limitPct<50?'background:var(--amber)':''}"></div></div>
+        `:''}
+        <div class="provider-meta">
+          <div class="meta-item"><label>HTTP Status</label><span style="color:${statusColor}">${s.last_status||'—'}</span></div>
+          <div class="meta-item"><label>Updated</label><span>${relTime(s.updated_at)}</span></div>
+          ${s.rate_reset?`<div class="meta-item"><label>Rate Reset</label><span>${relTime(s.rate_reset)}</span></div>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function errorLabel(message) {
+  const text = String(message || '').trim();
+  if (!text) return '';
+  if (text.includes('TMDB details')) return 'TMDB details';
+  if (text.includes('MDBList item')) return 'MDBList missing';
+  if (text.length > 22) return text.slice(0, 21)+'…';
+  return text;
+}
+
+// ── Recent Titles ──
+function renderRecent() {
+  const titles = state.titlesRecent?.titles || [];
+  document.getElementById('recent-count').textContent = titles.length+' titles';
+  const tb = document.querySelector('#recent-table tbody');
+  tb.innerHTML = titles.length===0
+    ? '<tr><td colspan="6" style="color:var(--text-muted)">No recent activity</td></tr>'
+    : titles.map(t=>{
+    const ratingDots = (t.ratings||[]).map(r=>{
+      const st = (r.pmdb_status||'').toLowerCase();
+      const cls = st==='submitted'?'submitted':st==='pending'?'pending':'failed';
+      return `<span class="rating-dot ${cls}" title="${esc(r.label)}: ${r.score!=null?r.score:'?'} (${st})">${esc(r.label||'')}</span>`;
     }).join('');
-
-    const hasError = t.last_error;
-    const statusHtml = hasError
-      ? `<span style="color:var(--error);font-size:0.75rem" title="${t.last_error}">⚠ Error</span>`
-      : `<span style="color:var(--success);font-size:0.75rem">✓ OK</span>`;
-
+    const typeClass = (t.media_type||'').toLowerCase()==='movie'?'pill-movie':'pill-tv';
     return `<tr>
-      <td class="title-cell" title="${t.title || ''}">${t.title || 'Unknown'}</td>
-      <td><span class="type-badge ${typeClass}">${t.media_type || '?'}</span></td>
-      <td>${vote}</td>
-      <td><div class="rating-dots">${dots || '—'}</div></td>
-      <td>${statusHtml}</td>
-      <td style="color:var(--text-muted);font-size:0.78rem">${relTime(t.last_harvested_at)}</td>
+      <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(t.title||'')}">${esc(t.title||'—')}</td>
+      <td><span class="pill ${typeClass}">${esc((t.media_type||'?').toUpperCase())}</span></td>
+      <td class="mono">${t.tmdb_vote_average!=null?fmtDec(t.tmdb_vote_average):'—'}</td>
+      <td><div class="rating-dots">${ratingDots||'—'}</div></td>
+      <td style="font-size:.75rem;color:var(--text-secondary)">${relTime(t.last_harvested_at)}</td>
+      <td>${t.last_error?`<span class="error-chip" title="${esc(t.last_error)}">${esc(errorLabel(t.last_error))}</span>`:''}</td>
     </tr>`;
   }).join('');
 }
 
-/* ── Footer ── */
-function renderFooter() {
-  const s = DATA.stats?.summary || {};
-  animateCounter('ft_ratings', s.ratings_today || 0);
-  animateCounter('ft_mappings', s.mappings_today || 0);
-  animateCounter('ft_episodes', s.episode_ratings_today || 0);
-  animateCounter('fa_ratings', s.ratings_total || 0);
-  animateCounter('fa_mappings', s.mappings_total || 0);
-  animateCounter('fa_episodes', s.episode_ratings_total || 0);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   INIT & REFRESH LOOP
-   ═══════════════════════════════════════════════════════════════ */
-fetchAll();
-setInterval(fetchAll, 5000);
+// ─── Init & Refresh ───
+loadAll();
+setInterval(loadAll, 5000);
 </script>
 </body>
 </html>

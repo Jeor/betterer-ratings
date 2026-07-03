@@ -64,6 +64,8 @@ def test_parse_value_and_scale_characterization(value, expected):
         (4.2, None, 5, 84.0),
         (8.0, None, 5, 80.0),
         (8.0, None, 10, 80.0),
+        (4.0, None, 4, 100.0),
+        (3.5, None, 4, 87.5),
         (4.0, None, None, 80.0),
         (8.0, None, None, 80.0),
         (67.0, None, None, 67.0),
@@ -108,6 +110,63 @@ def test_parse_mdblist_ratings_primary_paths_and_source_overrides():
         "ML": 80.0,
         "RE": 80.0,
     }
+
+
+def test_parse_mdblist_ratings_treats_source_scores_as_normalized():
+    payload = {
+        "ratings": [
+            {"source": "IMDb", "value": 0.8, "score": 8},
+            {"source": "Rotten Tomatoes", "value": 10, "score": 10},
+            {"source": "Popcorn", "value": 9, "score": 9},
+            {"source": "Metacritic", "value": 9, "score": 9},
+            {"source": "Trakt", "value": 6, "score": 6},
+            {"source": "TMDB", "value": 7, "score": 7},
+            {"source": "Letterboxd", "value": 0.4, "score": 8},
+            {"source": "MyAnimeList", "value": 0.9, "score": 9},
+        ],
+    }
+
+    assert m.parse_mdblist_ratings(payload) == {
+        "IM": 8.0,
+        "RT": 10.0,
+        "PC": 9.0,
+        "MC": 9.0,
+        "TR": 6.0,
+        "TM": 7.0,
+        "LB": 8.0,
+        "ML": 9.0,
+    }
+
+
+def test_parse_mdblist_ratings_uses_source_specific_value_scales_without_score():
+    payload = {
+        "ratings": [
+            {"source": "IMDb", "value": "6.5"},
+            {"source": "Tomatoes", "value": "10"},
+            {"source": "Popcorn", "value": "9"},
+            {"source": "Trakt", "value": "6"},
+            {"source": "TMDB", "value": "7"},
+            {"source": "Letterboxd", "value": "4.4"},
+            {"source": "MyAnimeList", "value": "7.2"},
+            {"source": "RogerEbert", "value": "4"},
+        ],
+        "score": "7",
+    }
+
+    assert m.parse_mdblist_ratings(payload) == {
+        "IM": 65.0,
+        "RT": 10.0,
+        "PC": 9.0,
+        "TR": 6.0,
+        "TM": 7.0,
+        "LB": 44.0,
+        "ML": 72.0,
+        "RE": 100.0,
+    }
+
+
+def test_parse_mdblist_ratings_low_global_score_fallback_is_normalized():
+    assert m.parse_mdblist_ratings({"score": "7"}) == {"TR": 7.0}
 
 
 def test_parse_mdblist_ratings_imdb_and_trakt_fallbacks():
