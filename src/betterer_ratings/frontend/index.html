@@ -524,7 +524,7 @@ function renderActivityMatrix() {
   if (!matrix) return;
 
   const q = state.stats?.queue || {};
-  const services = Object.fromEntries((state.services?.services || []).map(s => [s.name, s]));
+  const services = Object.fromEntries((state.services?.services || []).map(s => [s.service || s.name, s]));
   const totals = {
     ratings:Number(state.stats?.summary?.ratings_today || 0),
     mappings:Number(state.stats?.summary?.mappings_today || 0),

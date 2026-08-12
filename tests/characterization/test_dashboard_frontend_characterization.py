@@ -37,6 +37,7 @@ def test_meridian_header_and_tables_match_single_dashboard_copy() -> None:
     assert 'id="activity-matrix"' in html
     assert "MATRIX_LAYOUT" in html
     assert "renderActivityMatrix()" in html
+    assert "s.service || s.name" in html
     assert "prefers-reduced-motion:reduce" in html
     assert "PMDB<small> Meridian</small>" not in html
     assert "MERIDIAN" not in html
